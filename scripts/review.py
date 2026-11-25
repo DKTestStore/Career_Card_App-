@@ -1,5 +1,5 @@
 """Smoke test + review screenshots. Usage: npm run build && npx vite preview --port 4173 & python3 scripts/review.py"""
-import datetime, os, sys
+import datetime, os, sys, re
 from playwright.sync_api import sync_playwright, expect
 
 BASE = os.environ.get('BASE', 'http://localhost:4173')
@@ -23,7 +23,19 @@ with sync_playwright() as p:
     page.on('pageerror', lambda e: errors.append(str(e)))
     page.on('console', lambda m: errors.append(m.text) if m.type == 'error' else None)
 
+    # --- welcome / first visit ---
     page.goto(BASE + '/')
+    expect(page.get_by_role('heading', name='Build a sharp resume')).to_be_visible()
+    expect(page.get_by_role('button', name='Continue with Google')).to_be_disabled()
+    expect(page.get_by_text('Coming soon')).to_be_visible()
+    shot(page, '12-desktop-welcome.png')
+    page.get_by_label('First name').fill('Priya')
+    page.get_by_test_id('get-started').click()
+    expect(page.get_by_role('heading', name='Good')).to_be_visible()
+    expect(page.get_by_role('heading', name='Priya')).to_be_visible()
+    page.reload()
+    expect(page.get_by_role('heading', name='Good')).to_be_visible()
+    expect(page.locator('.welcome-hero')).to_have_count(0)
     expect(page.get_by_text('No resumes yet')).to_be_visible()
 
     # --- create resumes from samples ---
@@ -216,7 +228,60 @@ with sync_playwright() as p:
     # service worker registered?
     sw = page.evaluate('navigator.serviceWorker.getRegistrations().then(r => r.length)')
     print('service workers', sw)
+    # --- sign out, keep data ---
+    page.set_viewport_size({'width': 1440, 'height': 900})
+    page.goto(BASE + '/')
+    resume_count = page.locator('.resume-card').count()
+    assert resume_count >= 1, f'expected resumes before sign-out, got {resume_count}'
+    page.locator('.account-menu.sidebar .account-chip').click()
+    page.get_by_test_id('sign-out').click()
+    expect(page.get_by_role('heading', name='Sign out?')).to_be_visible()
+    shot(page, '13-desktop-sign-out-dialog.png')
+    page.get_by_test_id('confirm-sign-out').click()
+    expect(page.get_by_role('heading', name="You're signed out")).to_be_visible()
+    shot(page, '14-desktop-signed-out.png')
+    page.get_by_test_id('sign-back-in').click()
+    expect(page.get_by_role('heading', name='Good')).to_be_visible()
+    expect(page.locator('.resume-card')).to_have_count(resume_count)
+    print('sign out keep-data: resumes intact', resume_count)
+
+    # --- sign out, erase data ---
+    page.locator('.account-menu.sidebar .account-chip').click()
+    page.get_by_test_id('sign-out').click()
+    page.get_by_label('Sign out and erase data from this device').click()
+    page.get_by_test_id('confirm-sign-out').click()
+    page.locator('dialog[open]').get_by_role('button', name='Sign out and erase').click()
+    expect(page.get_by_role('heading', name="You're signed out")).to_be_visible()
+    page.get_by_test_id('sign-back-in').click()
+    expect(page.get_by_text('No resumes yet')).to_be_visible()
+    print('sign out erase: data cleared')
+
+    # --- mobile welcome / sign-out (fresh context so we get the welcome page) ---
+    ctx2 = browser.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=1)
+    m = ctx2.new_page()
+    m.goto(BASE + '/')
+    expect(m.get_by_role('heading', name='Build a sharp resume')).to_be_visible()
+    shot(m, '15-mobile-welcome.png')
+    w = m.evaluate('document.documentElement.scrollWidth')
+    assert w <= 390, f'welcome overflow 390px: {w}'
+    m.get_by_label('First name').fill('Priya')
+    m.get_by_test_id('get-started').click()
+    expect(m.get_by_role('heading', name='Good')).to_be_visible()
+    m.locator('.account-menu.header .account-header-btn').click()
+    m.get_by_test_id('sign-out').click()
+    expect(m.get_by_role('heading', name='Sign out?')).to_be_visible()
+    shot(m, '16-mobile-sign-out-dialog.png')
+    m.get_by_test_id('confirm-sign-out').click()
+    expect(m.get_by_role('heading', name="You're signed out")).to_be_visible()
+    shot(m, '17-mobile-signed-out.png')
+    w = m.evaluate('document.documentElement.scrollWidth')
+    assert w <= 390, f'signed-out overflow 390px: {w}'
+    m.get_by_test_id('back-to-welcome').click()
+    expect(m.get_by_role('heading', name='Build a sharp resume')).to_be_visible()
+    ctx2.close()
+
     browser.close()
+
 
 real = [e for e in errors if 'favicon' not in e]
 print('console/page errors:', real)

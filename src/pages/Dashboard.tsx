@@ -1,4 +1,5 @@
 import { useStore } from '../lib/store';
+import { useAuth } from '../lib/auth';
 import { linkClick } from '../lib/router';
 import { ResumeGrid, useImportResume, useNewResume } from '../components/ResumeGrid';
 import { Icon } from '../components/Icon';
@@ -12,6 +13,7 @@ function greeting() {
 
 export function Dashboard() {
   const { resumes, versions, applications } = useStore();
+  const { firstName: guestName } = useAuth();
   const nr = useNewResume();
   const imp = useImportResume();
   const today = todayStr();
@@ -21,7 +23,7 @@ export function Dashboard() {
     .filter((a) => a.followUp && a.status !== 'offer' && a.status !== 'rejected')
     .sort((a, b) => a.followUp.localeCompare(b.followUp))
     .slice(0, 6);
-  const firstName = resumes[0]?.content.basics.name.split(' ')[0];
+  const firstName = guestName || resumes[0]?.content.basics.name.split(' ')[0];
 
   return (
     <div className="page">

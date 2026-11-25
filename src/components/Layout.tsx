@@ -3,6 +3,7 @@ import { linkClick } from '../lib/router';
 import { useStore } from '../lib/store';
 import { Icon } from './Icon';
 import { todayStr } from '../lib/util';
+import { AccountMenu } from './AccountMenu';
 
 const NAV = [
   { key: 'home', href: '/', label: 'Dashboard', short: 'Home', icon: 'home' },
@@ -48,12 +49,14 @@ export function Layout({ section, children, fullBleed }: { section: string; chil
         </nav>
         <div className="side-card">
           <b>Private by design</b>
-          <p>Your resumes and applications are stored only in this browser. Export a backup from Data &amp; settings.</p>
+          <p>Stored only in this browser. Export a backup from Data &amp; settings any time.</p>
         </div>
+        <AccountMenu variant="sidebar" />
       </aside>
 
       <header className="mobile-top">
         <a href="/" onClick={linkClick} className="brand brand-dark"><Logo /><b>Hire Ready</b></a>
+        <AccountMenu variant="header" />
       </header>
 
       <main id="main" className={`main${fullBleed ? ' full' : ''}`} tabIndex={-1}>{children}</main>

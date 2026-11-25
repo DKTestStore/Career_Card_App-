@@ -1,13 +1,20 @@
 # Hire Ready — Phase 1
 
-Lightweight, installable web app with two modules:
+Lightweight, installable web app for building resumes and tracking job applications.
 
-- **Resume Builder** — create resumes from blank or sample profiles, edit every section, live A4 preview with 3 templates × 5 colour themes, version history, PDF / text / JSON Resume export.
-- **Application Tracker** — Kanban board (Wishlist → Applied → Interview → Offer → Rejected) with drag-and-drop, list view, search/filter, stats and overdue follow-up highlights.
+**Live:** [https://career-card-app.vercel.app](https://career-card-app.vercel.app)
 
-No backend, no account, no tracking. All data stays in the user's browser (IndexedDB, with a localStorage fallback).
+No backend and no real account yet. A guest session lives in this browser. All resumes and applications stay on the device (IndexedDB, with a localStorage fallback). There is no tracking.
 
 ## Features
+
+### Welcome and sign-out
+- **Welcome page** (`/welcome`) on first visit: brand hero, a short value proposition, and four highlights (resume builder with templates, application tracker, private on-device data, offline / installable).
+- **Get started** enters as a guest. An optional first name personalises the dashboard greeting (stored only on this device).
+- **Continue with Google** is visible but disabled, tagged *Coming soon*. The auth module is structured so Supabase Google SSO can plug in later (see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)).
+- After the first visit, the app opens the **dashboard**. Signing out clears the guest session so the next visit shows Welcome again.
+- **Account menu** (sidebar on desktop, header on mobile) with **Sign out**. A dialog offers *Keep my data on this device* (default) or *Sign out and erase data from this device* (with a second confirm), plus a *Download backup first* link.
+- **Signed-out page** (`/logout`, also `/signed-out`): *Sign back in* returns to the dashboard (data intact unless it was erased); *Back to welcome* returns to the Welcome page.
 
 ### Resume Builder
 - Dashboard + Resumes page: create (blank or Software Engineer / Fresher-Student / Product Designer samples), open, duplicate, rename, delete (with confirmation), search.
@@ -27,8 +34,9 @@ No backend, no account, no tracking. All data stays in the user's browser (Index
 - Stats: total, count per status (click to filter), response rate = (Interview + Offer + Rejected) ÷ everything past Wishlist.
 - Follow-ups: overdue cards get a coral edge + badge, "due today" in amber; dashboard lists upcoming follow-ups.
 
-### Data
-- Full backup export/import (JSON) with *Merge* or *Replace all*; "Delete all data" in Data & settings.
+### Data and privacy
+- Full backup export/import (JSON) with *Merge* or *Replace all*; "Delete all data" in Data & settings, and the sign-out erase option.
+- **Local-only storage.** Resumes, versions and applications never leave this browser unless you export a file. There is no cloud copy, no analytics, and no cookies. Fonts are bundled with the app.
 - PWA: web manifest + service worker (offline app shell, cache-first hashed assets). Installable from the browser menu.
 - Responsive: left sidebar on desktop; bottom nav, single column and Edit / Preview / Design tabs on mobile (tested at 360, 390, 900 and 1440 px wide).
 - Accessibility: labelled inputs, skip link, native `<dialog>` modals (focus trap + Esc), radio-group semantics for template/colour pickers, keyboard-operable menus, visible focus rings, reduced-motion support.
@@ -53,15 +61,26 @@ python3 scripts/review.py   # writes screenshots-review/*.png and a sample PDF
 ```
 
 ## Deploy to Vercel
-It's a static SPA, so no configuration is needed beyond the included `vercel.json` (build `npm run build`, output `dist`, SPA rewrite to `/index.html`).
 
-**Option A — dashboard:** push this folder to a Git repo, then on [vercel.com](https://vercel.com) → *Add New… → Project* → import the repo → *Deploy*. Vercel detects Vite automatically.
+Production project: **career-card-app** on the **career-card** team.  
+Production URL: https://career-card-app.vercel.app
 
-**Option B — CLI:**
+
+**Production branch rule:** Vercel must sync with and deploy **only `main`**. Production deploys are created from the exact `origin/main` HEAD commit (local `HEAD` is verified to match `origin/main` before a manual upload). `vercel.json` sets `git.deploymentEnabled` so that, once GitHub is linked, only `main` triggers deployments (`main: true`, `**: false` — the `**` glob also covers branch names with slashes). Other branches do not auto-deploy.
+
+It is a static SPA. `vercel.json` sets the build command (`npm run build`), the output directory (`dist`), and the rewrite of all routes to `/index.html`.
+
+**Option A — Git auto-deploy (preferred, once GitHub is connected):** push to `main` on [DKTestStore/Career_Card_App-](https://github.com/DKTestStore/Career_Card_App-). Vercel will build automatically after the GitHub repo is linked to the project.
+
+> **Note:** Git auto-deploy is not active yet. The Vercel account must have a **GitHub Login Connection** (Vercel account settings → Login Connections / Git) before the repo can be linked. Until that is done, a push to GitHub does not update production.
+
+**Option B — CLI, after the project exists:**
 ```bash
 npx vercel          # first run links/creates the project (preview deploy)
 npx vercel --prod   # production deploy
 ```
+
+**Option C — dashboard:** on [vercel.com](https://vercel.com) → the `career-card-app` project → *Deployments* → deploy from Git once the Login Connection is in place, or use the CLI above.
 
 ## Data model (stage 1)
 | Store | Contents |
@@ -69,11 +88,14 @@ npx vercel --prod   # production deploy
 | `resumes` | `{ id, name, template, accent, content (JSON Resume: basics, work, education, projects, skills, certificates, awards), createdAt, updatedAt }` |
 | `versions` | `{ id, resumeId, number, label, createdAt, snapshot: { name, template, accent, content } }` — max 50 per resume |
 | `applications` | `{ id, company, role, location, link, dateApplied, salary, resumeId, versionId, status, notes, followUp, contact, order, … }` |
+| `hire-ready:session` / `hire-ready:profile` | Guest session flag and display name in `localStorage` (see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)) |
 
-Stage 2 (accounts + sync via Supabase) can upload this same data on first sign-in.
+Stage 2 (Google SSO + sync via Supabase) can upload this same data on first sign-in. Details and the planned hook points are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Changes are listed in [docs/CHANGELOG.md](docs/CHANGELOG.md).
 
 ## Known limitations
 - PDF export uses the browser print dialog (users pick *Save as PDF*); multi-page resumes break wherever the browser breaks them, with no top margin on page 2.
 - Section order within the resume is fixed (entries inside each section can be reordered).
 - Drag-and-drop is desktop-only (HTML5 DnD doesn't fire on touch); mobile uses the move buttons / status dropdown.
 - Data lives in one browser; use backup export/import to move between devices.
+- Google sign-in is not available yet; the button is visible but disabled.
+- Pushing to GitHub does not auto-deploy until a GitHub Login Connection is added in Vercel.

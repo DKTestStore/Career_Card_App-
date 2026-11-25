@@ -28,6 +28,11 @@ const P: Record<string, string> = {
   eye: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
   grip: 'M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01',
   calendar: 'M3 5h18v16H3zM16 3v4M8 3v4M3 10h18',
+  user: 'M20 21a8 8 0 0 0-16 0M12 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  logout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
+  shield: 'M12 3 5 7v5c0 5 3.5 7.5 7 9 3.5-1.5 7-4 7-9V7z',
+  offline: 'M5 12.5A8.5 8.5 0 0 1 19 8M2 8.5A12 12 0 0 1 22 12M12 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z',
+  templates: 'M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z',
 };
 
 export function Icon({ name, size = 18, className }: { name: keyof typeof P | string; size?: number; className?: string }) {
