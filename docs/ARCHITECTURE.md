@@ -1,6 +1,6 @@
 # Hire Ready architecture
 
-Phase 1 is a static single-page app (Vite + React + TypeScript). There is no backend. It is hosted as static files on Vercel.
+Hire Ready is a single-page app (Vite + React + TypeScript) hosted on Vercel. Since 0.4.0 it has two small Node functions (`api/`) used only for **published portfolios**; everything else stays in the browser.
 
 ## Storage model (stage 1)
 
@@ -18,7 +18,7 @@ Privacy defaults:
 
 - No analytics, cookies, or tracking pixels.
 - Fonts are bundled with the app (no Google Fonts request).
-- Public share links and cloud sync are not in Phase 1.
+- Cloud sync is not available. The only data that leaves the device is a portfolio the user explicitly publishes (see below); unpublishing deletes it from the server.
 - “Sign out and erase” (and Data & settings → Delete all data) removes resumes, versions, applications, and the saved profile from this device.
 
 ## Templates and colours
@@ -56,6 +56,38 @@ When Google sign-in is enabled:
 
 Until that work lands, Hire Ready has no accounts and no server-side copy of anyone’s data.
 
+## Portfolio (0.4.0)
+
+### Client
+- `src/lib/portfolio/` — types, model (empty portfolio, import from résumé, slug rules, payload/size, defensive `normalizeView`), API client, image compression (`compressImage`: canvas resize to ≤1600 px, WebP q0.8 with JPEG fallback, stored as data URLs), QR (`qrcode-generator`, dynamically imported), `usePublish` hook.
+- `src/portfolio/` — `Builder`, `ProjectModal`, `PublishPage`, `ThemesPage`, `LocalPreview`, `PublicPage`, `PortfolioView` (the one renderer used by the live page, builder preview and theme gallery; themes are CSS classes `pf-minimal|developer|creative|academic` with `--pf-accent`, and the layout adapts with container queries), `ResumePrint`.
+- All portfolio routes are `React.lazy` chunks. `/p/:slug` is handled before the sign-in gate, without the app shell.
+- Storage: IndexedDB store `portfolios` (DB v3), one record `id: 'main'`. Edits are debounced like résumé edits; discrete choices (theme, colour, visibility) are written immediately. Backups include the record.
+
+### Server (Vercel functions, plain ESM JavaScript)
+- `api/portfolio.js`
+  - `GET ?slug=` → `200` public view, `401 {needsPassword}`, `403 {private}`, `404`.
+  - `POST {action:'check', slug, token?}` → `{available, mine}`.
+  - `POST {action:'publish', slug, previousSlug?, token, visibility, password?, hidePhone, theme, accent, data, resume}` → upsert. Rejects with `409` if the slug belongs to a different edit key. Moving to a new slug deletes the old one (same key only).
+  - `POST {action:'view', slug, password}` → content of a password-protected portfolio.
+  - `POST {action:'unpublish', slug, token}` → delete (owner only).
+- `api/p-page.js` — serves `/p/:slug` (rewrite in `vercel.json`): the SPA `index.html` with title, description, canonical, robots and Open Graph tags for public portfolios; generic `noindex` tags otherwise.
+- `api/_lib/portfolio.js` — validation, sanitising, hashing, rate limiting and the storage adapter.
+
+Storage: one private blob per portfolio, `portfolios/<slug>.json` in the Blob store **hire-ready-portfolios** (private access, region `bom1`, Hobby free tier) connected to `career-card-app`; the connection sets `BLOB_READ_WRITE_TOKEN`. Locally (`npm run serve:local`) the same code writes to `PORTFOLIO_STORE_DIR` instead. Images are embedded in the JSON as data URLs, so private/password content is never reachable through a public blob URL.
+
+Record: `{ v, slug, ownerHash, visibility, theme, accent, hidePhone, password: {salt, hash} | null, data, resume, publishedAt, updatedAt }`.
+
+Security and privacy:
+- **Edit key:** 32 random bytes generated in the browser and kept in IndexedDB; the server stores only its SHA-256 and compares in constant time. Losing the key (e.g. erasing browser data without a backup) means the page can no longer be updated or unpublished from the app.
+- **Passwords:** scrypt with a random 16-byte salt; checked on the server; never returned. Wrong-password attempts are rate-limited.
+- **Private:** the server keeps only the slug reservation (no content).
+- **Hide phone:** phone numbers are removed from `about`, `contact` and the résumé snapshot before storage.
+- **Sanitising:** every string is stripped of control characters and HTML tags; URL fields allow only `http(s)` and `mailto`; image fields accept only `data:image/(webp|jpeg|png);base64`. React escapes everything on render; the SEO function HTML-escapes its tags.
+- **Limits:** request and stored record ≤ 2 MB; per-instance in-memory rate limits (hashed client IP, never stored): publish 30/10 min, password 20/10 min, reads 240/min.
+- **No analytics:** view counting was left out because each Blob write is a billable operation on the free tier; the publish page shows a teaser instead.
+- API responses are `no-store`; the service worker skips `/api/*`.
+
 ## Routing
 
 Client-side paths (the host rewrites unknown URLs to `index.html`):
@@ -64,15 +96,17 @@ Client-side paths (the host rewrites unknown URLs to `index.html`):
 - `/` — dashboard (signed-in)
 - `/resumes`, `/resumes/:id` — list and editor (`?section=skills` opens a section)
 - `/ats` — ATS checker (`?resume=<id>` preselects a resume; lazy-loaded)
+- `/portfolio` — portfolio builder (lazy-loaded); `/portfolio/publish`, `/portfolio/themes`, `/portfolio/preview`
+- `/p/:slug` — public portfolio (no sign-in; served via `api/p-page.js` for SEO tags)
 - `/tracker` — application board / list
 - `/settings` — backup and data controls
 - `/logout` (alias `/signed-out`) — post sign-out confirmation
 
-Unsigned visitors are redirected to `/welcome`. A signed-in visit to `/welcome` goes to the dashboard.
+Unsigned visitors are redirected to `/welcome` (except `/p/:slug`). A signed-in visit to `/welcome` goes to the dashboard.
 
 ## Deploy
 
-The production project is **career-card-app** on the Vercel team **career-card** (Hobby). Framework: Vite; build: `npm run build`; output: `dist`. The production URL is https://career-card-app.vercel.app.
+The production project is **career-card-app** on the Vercel team **career-card** (Hobby). Framework: Vite; build: `npm run build`; output: `dist`; functions: `api/*.js` (Node). Environment: `BLOB_READ_WRITE_TOKEN` (set by the Blob store connection). The production URL is https://career-card-app.vercel.app.
 
 Git auto-deploy is not connected yet: the Vercel account needs a GitHub Login Connection before `DKTestStore/Career_Card_App-` can be linked. Until then, production is updated by deploying the source files to that project (CLI or API) **after a push to `main`**, from the exact `origin/main` HEAD commit (local HEAD is checked against `origin/main` first, and the commit SHA is recorded in deployment metadata).
 

@@ -36,6 +36,6 @@ with sync_playwright() as p:
     expect(pg.get_by_role('radio', name='Teal')).to_have_attribute('aria-checked', 'true')
     ver = pg.evaluate("new Promise(r => { const q = indexedDB.open('hire-ready'); q.onsuccess = () => { r([q.result.version, [...q.result.objectStoreNames]]); q.result.close(); }; })")
     print('db', ver, 'errors', errs)
-    assert ver[0] == 2 and 'atsReports' in ver[1] and not errs
+    assert ver[0] == 3 and 'atsReports' in ver[1] and 'portfolios' in ver[1] and not errs
     print('MIGRATION OK')
     b.close()

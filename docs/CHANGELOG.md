@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.0 — 2026-11-26
+
+- **My Portfolio** (new nav item on desktop and mobile, `/portfolio`): builder with About/hero, Projects, Skills, Experience, Education, Certifications, Gallery, Testimonials and Contact sections (hide / reorder), live scaled preview, and a Design & publish panel.
+- **Import from résumé** into the portfolio; project editor modal (tags, description, cover, gallery, GitHub / demo links, featured).
+- **4 portfolio themes** (Minimal, Developer dark, Creative, Academic) + accent colours and custom colour; theme gallery page; full-page local preview.
+- Client-side image compression (max 1600 px, WebP with JPEG fallback).
+- **Publishing** via two Vercel functions and a private **Vercel Blob** store: `POST /api/portfolio` (`check`, `publish`, `view` with password, `unpublish`) and `GET /api/portfolio?slug=`. Owner edit key generated in the browser, SHA-256 hash stored server-side; slugs held by another key are rejected (409). Public / private / password (scrypt-hashed) visibility, hide-phone applied server-side, 2 MB limit, light per-instance rate limits, plain-text sanitising (no HTML) and http(s)/mailto-only links.
+- **Public page** `/p/:slug` (no sign-in needed) with hero, featured projects, skills, timeline, contact form (mailto), links, QR code and *Download résumé* (print-ready PDF of the chosen résumé). `/p/:slug` is served by `api/p-page.js`, which fills in title, description, canonical and Open Graph tags.
+- Publish & share page: custom link with availability check, visibility, hide phone, résumé choice, copy link, QR code (SVG + PNG download), size meter, unpublish.
+- IndexedDB v3 adds a `portfolios` store; backups include the portfolio (and its edit key). Service worker v4 never caches `/api/*` and does not store `/p/*` pages as the app shell.
+- Portfolio routes and the QR library are lazy-loaded; the main bundle grew by about 1.5 kB gzip.
+- `npm run serve:local` (local stand-in for Vercel with a folder-based store) and `scripts/portfolio_e2e.py`.
+
 ## 0.3.0 — 2026-11-25
 
 - **ATS Check** page at `/ats` (new nav item on desktop and mobile): paste a job description or pick one of 4 samples, choose a resume, get a 0–100 score with gauge and breakdown (keywords, sections, formatting/ATS safety, contact, length, bullet quality, readability, dates).

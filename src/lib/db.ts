@@ -1,5 +1,6 @@
 import { openDB, type IDBPDatabase } from 'idb';
 import type { Application, AtsReport, Resume, ResumeVersion } from './types';
+import type { Portfolio } from './portfolio/types';
 
 /**
  * Stage-1 storage: everything stays on this device.
@@ -12,22 +13,24 @@ export interface StoreMap {
   versions: ResumeVersion;
   applications: Application;
   atsReports: AtsReport;
+  portfolios: Portfolio;
 }
 export type StoreName = keyof StoreMap;
-const STORES: StoreName[] = ['resumes', 'versions', 'applications', 'atsReports'];
+const STORES: StoreName[] = ['resumes', 'versions', 'applications', 'atsReports', 'portfolios'];
 
 interface Backend {
   kind: 'indexeddb' | 'localstorage' | 'memory';
   getAll<S extends StoreName>(store: S): Promise<StoreMap[S][]>;
   put<S extends StoreName>(store: S, value: StoreMap[S]): Promise<void>;
   delete(store: StoreName, id: string): Promise<void>;
-  replaceAll(data: { [S in StoreName]: StoreMap[S][] }): Promise<void>;
+  /** Replaces the contents of every store present in `data` (others are untouched). */
+  replaceAll(data: { [S in StoreName]?: StoreMap[S][] }): Promise<void>;
 }
 
 const DB_NAME = 'hire-ready';
 
 async function idbBackend(): Promise<Backend> {
-  const db: IDBPDatabase = await openDB(DB_NAME, 2, {
+  const db: IDBPDatabase = await openDB(DB_NAME, 3, {
     upgrade(d) {
       for (const s of STORES) {
         if (!d.objectStoreNames.contains(s)) {
@@ -43,11 +46,12 @@ async function idbBackend(): Promise<Backend> {
     put: async (store, value) => { await db.put(store, value); },
     delete: (store, id) => db.delete(store, id),
     replaceAll: async (data) => {
-      const tx = db.transaction(STORES, 'readwrite');
-      for (const s of STORES) {
+      const names = STORES.filter((s) => data[s]);
+      const tx = db.transaction(names, 'readwrite');
+      for (const s of names) {
         const os = tx.objectStore(s);
         await os.clear();
-        for (const v of data[s]) await os.put(v);
+        for (const v of data[s]!) await os.put(v);
       }
       await tx.done;
     },
@@ -76,7 +80,7 @@ function lsBackend(storage: Storage | null): Backend {
       write(s, rows);
     },
     delete: async (s, id) => write(s, read(s).filter((r) => r.id !== id)),
-    replaceAll: async (data) => { for (const s of STORES) write(s, data[s]); },
+    replaceAll: async (data) => { for (const s of STORES) if (data[s]) write(s, data[s]!); },
   };
 }
 

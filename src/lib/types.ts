@@ -137,4 +137,6 @@ export interface Backup {
   versions: ResumeVersion[];
   applications: Application[];
   atsReports?: AtsReport[];
+  /** Added in 0.4.0 — includes the portfolio edit key, keep backups private. */
+  portfolios?: import('./portfolio/types').Portfolio[];
 }

@@ -4,7 +4,7 @@ Lightweight, installable web app for building resumes and tracking job applicati
 
 **Live:** [https://career-card-app.vercel.app](https://career-card-app.vercel.app)
 
-No backend and no real account yet. A guest session lives in this browser. All resumes and applications stay on the device (IndexedDB, with a localStorage fallback). There is no tracking.
+No real account yet. A guest session lives in this browser. All resumes, applications and portfolio drafts stay on the device (IndexedDB, with a localStorage fallback). The only server-side data is a portfolio you choose to **publish** (stored in a private Vercel Blob store). There is no tracking.
 
 ## Features
 
@@ -31,6 +31,15 @@ No backend and no real account yet. A guest session lives in this browser. All r
 - Export: **PDF** via the browser print dialog (print stylesheet prints only the resume on a clean A4 page — choose *Save as PDF*), **Plain text**, **JSON Resume** (jsonresume.org schema; template/colour kept in `meta.hireReady`).
 - Import a JSON Resume file as a new resume.
 - ATS score panel in the editor (general score, breakdown, top suggestions with **Fix** links that open the right section).
+
+### My Portfolio (`/portfolio`, public pages at `/p/:slug`)
+- **Builder** with Sections / Live preview / Design & publish (tabs on mobile). Sections: About/hero (photo, headline, “open to”, bio, location, website), **Projects**, Skills, Experience, Education, Certifications, Gallery, Testimonials, Contact & social links. Each section can be hidden or reordered.
+- **Import from résumé** fills About, Projects, Skills, Experience, Education, Certifications and Contact from any saved résumé (images, gallery and testimonials are kept).
+- **Project editor**: title, role, tech tags, description, cover image, screenshot gallery (up to 6), GitHub and live-demo links, *Featured* toggle (featured projects show first).
+- **4 themes** — Minimal, Developer (dark), Creative, Academic — plus 6 accent colours and a custom colour. Theme gallery at `/portfolio/themes`; full-page local preview at `/portfolio/preview`.
+- **Images are compressed on the device**: longest side resized to 1600 px and saved as WebP (JPEG fallback) before they are stored.
+- **Publish & share** (`/portfolio/publish`): custom link (`/p/your-name`, availability check), **Public / Private / Password**, **Hide phone number** (applied on the server), choose the résumé behind *Download résumé*, copy link, **QR code** (SVG on screen, PNG download), size meter (2 MB limit), unpublish.
+- **Public page** `/p/:slug`: hero with photo and CTAs (*Download résumé* opens a print-ready PDF of the chosen résumé; *Contact*), featured project cards, skills, experience timeline, education, certifications, gallery, testimonials, contact form (opens the visitor’s email app; nothing is stored), links and QR code. Server-rendered `<title>`, description, canonical and Open Graph tags for public portfolios; password and private pages are `noindex`.
 
 ### ATS Check (`/ats`)
 Everything runs in the browser: no external APIs, nothing uploaded.
@@ -69,8 +78,15 @@ npm run lint       # ESLint
 npm run typecheck  # tsc
 ```
 
+Portfolio publishing locally (serves `dist/`, the API and `/p/:slug`; portfolios are saved to `.local-portfolios/`):
+```bash
+npm run build && npm run serve:local    # http://localhost:4174
+npm run dev                             # optional: Vite on :5173 proxies /api to :4174
+```
+
 Optional smoke test + screenshots (Python Playwright, uses a local Chrome):
 ```bash
+python3 scripts/portfolio_e2e.py         # with serve:local running: portfolio build/import/images/themes/publish/visitor/password/private/unpublish/mobile
 npm run build && npx vite preview --port 4173 &
 python3 scripts/review.py                # core smoke test, screenshots-review/*.png and a sample PDF
 python3 scripts/ats_templates_review.py  # ATS flow, all templates (render, overflow, print/PDF), colours, persistence, contact sheet
@@ -85,7 +101,14 @@ Production URL: https://career-card-app.vercel.app
 
 **Production branch rule:** Vercel must sync with and deploy **only `main`**. Production deploys are created from the exact `origin/main` HEAD commit (local `HEAD` is verified to match `origin/main` before a manual upload). `vercel.json` sets `git.deploymentEnabled` so that, once GitHub is linked, only `main` triggers deployments (`main: true`, `**: false` — the `**` glob also covers branch names with slashes). Other branches do not auto-deploy.
 
-It is a static SPA. `vercel.json` sets the build command (`npm run build`), the output directory (`dist`), and the rewrite of all routes to `/index.html`.
+It is a SPA plus two small Node functions in `api/`. `vercel.json` sets the build command (`npm run build`), the output directory (`dist`), `/p/:slug` → `api/p-page.js` (SEO tags), and the rewrite of every other non-`/api` route to `/index.html`.
+
+**Environment variables**
+
+| Name | Where | Purpose |
+|---|---|---|
+| `BLOB_READ_WRITE_TOKEN` | Vercel project (Production, Preview, Development) — added automatically when the Blob store `hire-ready-portfolios` (private, region `bom1`) is connected to the project | Read/write published portfolios in Vercel Blob. Without it, `/api/portfolio` returns 503 and publishing shows an error; the builder and local preview still work. |
+| `PORTFOLIO_STORE_DIR` | Local only (optional) | Folder used by `npm run serve:local` instead of Vercel Blob (default `.local-portfolios/`). |
 
 **Option A — Git auto-deploy (preferred, once GitHub is connected):** push to `main` on [DKTestStore/Career_Card_App-](https://github.com/DKTestStore/Career_Card_App-). Vercel will build automatically after the GitHub repo is linked to the project.
 
@@ -106,6 +129,7 @@ npx vercel --prod   # production deploy
 | `versions` | `{ id, resumeId, number, label, createdAt, snapshot: { name, template, accent, customColor, font, content } }` — max 50 per resume |
 | `applications` | `{ id, company, role, location, link, dateApplied, salary, resumeId, versionId, status, notes, followUp, contact, atsReportId?, order, … }` |
 | `atsReports` | `{ id, resumeId, resumeName, jdTitle, jdText, score, breakdown[], matched[], missing[], createdAt }` |
+| `portfolios` | `{ id: 'main', slug, theme, accent, resumeId, data: { about, projects[], skills[], experience[], education[], certifications[], gallery[], testimonials[], contact, sections[] }, publish: { visibility, hidePhone, showResume, token, publishedSlug, … } }` — images are data URLs (compressed WebP/JPEG). DB version 3. |
 | `hire-ready:session` / `hire-ready:profile` | Guest session flag and display name in `localStorage` (see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)) |
 
 Stage 2 (Google SSO + sync via Supabase) can upload this same data on first sign-in. Details and the planned hook points are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Changes are listed in [docs/CHANGELOG.md](docs/CHANGELOG.md).
@@ -115,6 +139,8 @@ Stage 2 (Google SSO + sync via Supabase) can upload this same data on first sign
 - Section order is set by the template (e.g. Fresher and Academic put Education first); entries inside each section can be reordered.
 - The ATS score is a rule-based estimate. Real applicant tracking systems differ, and keyword matching is literal (synonyms outside the built-in alias list are not recognised).
 - Drag-and-drop is desktop-only (HTML5 DnD doesn't fire on touch); mobile uses the move buttons / status dropdown.
-- Data lives in one browser; use backup export/import to move between devices.
+- Data lives in one browser; use backup export/import to move between devices. A published portfolio can only be updated or unpublished from the browser that holds its edit key (it is included in backups).
+- Portfolio view counts are not collected yet (the publish page shows a teaser). The contact form opens the visitor’s email app; messages are not sent or stored by Hire Ready.
+- A published portfolio (JSON plus images) must stay under 2 MB.
 - Google sign-in is not available yet; the button is visible but disabled.
 - Pushing to GitHub does not auto-deploy until a GitHub Login Connection is added in Vercel.

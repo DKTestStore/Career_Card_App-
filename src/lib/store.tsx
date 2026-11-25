@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { getBackend } from './db';
 import type { Application, AppStatus, AtsReport, Backup, Resume, ResumeVersion } from './types';
+import type { Portfolio } from './portfolio/types';
 import { migrateResume } from './resume';
 import { nowIso, uid } from './util';
 
@@ -15,6 +16,8 @@ interface Store {
   versions: ResumeVersion[];
   applications: Application[];
   atsReports: AtsReport[];
+  /** At most one portfolio today (id 'main'). */
+  portfolio: Portfolio | null;
   saveState: SaveState;
   lastSaved: string | null;
   addResume(r: Resume): Promise<void>;
@@ -32,6 +35,11 @@ interface Store {
   clearAll(): Promise<void>;
   saveAtsReport(r: AtsReport): Promise<void>;
   deleteAtsReport(id: string): Promise<void>;
+  /** Debounced update of the portfolio (like resume edits). */
+  updatePortfolio(fn: (p: Portfolio) => Portfolio, immediate?: boolean): void;
+  /** Immediate write (create / publish state changes). */
+  putPortfolio(p: Portfolio): Promise<void>;
+  deletePortfolio(): Promise<void>;
 }
 
 const Ctx = createContext<Store | null>(null);
@@ -49,6 +57,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [versions, setVersions] = useState<ResumeVersion[]>([]);
   const [applications, setApps] = useState<Application[]>([]);
   const [atsReports, setReports] = useState<AtsReport[]>([]);
+  const [portfolio, setPortfolioState] = useState<Portfolio | null>(null);
+  const pfRef = useRef<Portfolio | null>(null);
+  const pfTimer = useRef(0);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [lastSaved, setLastSaved] = useState<string | null>(null);
 
@@ -67,13 +78,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     let alive = true;
     (async () => {
       const db = await getBackend();
-      const [raw, v, a, rep] = await Promise.all([db.getAll('resumes'), db.getAll('versions'), db.getAll('applications'), db.getAll('atsReports')]);
+      const [raw, v, a, rep, pfs] = await Promise.all([db.getAll('resumes'), db.getAll('versions'), db.getAll('applications'), db.getAll('atsReports'), db.getAll('portfolios')]);
       if (!alive) return;
       // Migrate old template/accent ids so older data always renders.
       const r = raw.map((x) => migrateResume(x));
       for (let i = 0; i < r.length; i++) if (r[i] !== raw[i]) db.put('resumes', r[i]).catch(() => {});
       rep.sort((x, y) => y.createdAt.localeCompare(x.createdAt));
       repRef.current = rep; setReports(rep);
+      pfRef.current = pfs[0] ?? null; setPortfolioState(pfs[0] ?? null);
       r.sort((x, y) => y.updatedAt.localeCompare(x.updatedAt));
       resumesRef.current = r; versionsRef.current = v; appsRef.current = a;
       setResumes(r); setVersions(v); setApps(a); setKind(db.kind); setReady(true);
@@ -99,6 +111,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return persist(async () => { const db = await getBackend(); await db.put('resumes', r); });
   }, [persist]);
 
+  const flushPf = useCallback(() => {
+    if (!pfTimer.current) return Promise.resolve();
+    clearTimeout(pfTimer.current); pfTimer.current = 0;
+    const p = pfRef.current;
+    if (!p) return Promise.resolve();
+    return persist(async () => { const db = await getBackend(); await db.put('portfolios', p); });
+  }, [persist]);
+
   // Flush pending debounced writes before the page is hidden/closed.
   useEffect(() => {
     const t = timers.current;
@@ -106,11 +126,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       for (const [id, h] of t) { clearTimeout(h); flushResume(id); }
       t.clear();
     };
-    const onVis = () => { if (document.visibilityState === 'hidden') flushAll(); };
-    window.addEventListener('pagehide', flushAll);
+    const onVis = () => { if (document.visibilityState === 'hidden') { flushAll(); flushPf(); } };
+    const onHide = () => { flushAll(); flushPf(); };
+    window.addEventListener('pagehide', onHide);
     document.addEventListener('visibilitychange', onVis);
-    return () => { window.removeEventListener('pagehide', flushAll); document.removeEventListener('visibilitychange', onVis); };
-  }, [flushResume]);
+    return () => { window.removeEventListener('pagehide', onHide); document.removeEventListener('visibilitychange', onVis); };
+  }, [flushResume, flushPf]);
 
   const setR = (next: Resume[]) => { resumesRef.current = next; setResumes(next); };
   const setV = (next: ResumeVersion[]) => { versionsRef.current = next; setVersions(next); };
@@ -219,9 +240,34 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, [persist]);
 
+  const updatePortfolio = useCallback((fn: (p: Portfolio) => Portfolio, immediate = false) => {
+    const cur = pfRef.current;
+    if (!cur) return;
+    const next: Portfolio = { ...fn(cur), updatedAt: nowIso() };
+    if (next.publish.publishedSlug) next.publish = { ...next.publish, dirty: true };
+    pfRef.current = next; setPortfolioState(next);
+    setSaveState('saving');
+    clearTimeout(pfTimer.current);
+    pfTimer.current = window.setTimeout(() => { flushPf(); }, immediate ? 0 : 400);
+  }, [flushPf]);
+
+  const putPortfolio = useCallback(async (p: Portfolio) => {
+    clearTimeout(pfTimer.current); pfTimer.current = 0;
+    pfRef.current = p; setPortfolioState(p);
+    await persist(async () => { const db = await getBackend(); await db.put('portfolios', p); });
+  }, [persist]);
+
+  const deletePortfolio = useCallback(async () => {
+    clearTimeout(pfTimer.current); pfTimer.current = 0;
+    const id = pfRef.current?.id;
+    pfRef.current = null; setPortfolioState(null);
+    if (id) await persist(async () => { const db = await getBackend(); await db.delete('portfolios', id); });
+  }, [persist]);
+
   const exportBackup = useCallback((): Backup => ({
     app: 'hire-ready', schema: 1, exportedAt: nowIso(),
     resumes: resumesRef.current, versions: versionsRef.current, applications: appsRef.current, atsReports: repRef.current,
+    ...(pfRef.current ? { portfolios: [pfRef.current] } : {}),
   }), []);
 
   const importBackup = useCallback(async (b: Backup, mode: 'merge' | 'replace') => {
@@ -235,13 +281,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const v = merge(versionsRef.current, b.versions ?? []);
     const a = merge(appsRef.current, b.applications ?? []);
     const rep = merge(repRef.current, b.atsReports ?? []).sort((x, y) => y.createdAt.localeCompare(x.createdAt));
+    const pf = b.portfolios?.length ? b.portfolios[0] : mode === 'replace' ? null : pfRef.current;
     setR(r); setV(v); setA(a); setRep(rep);
-    await persist(async () => { const db = await getBackend(); await db.replaceAll({ resumes: r, versions: v, applications: a, atsReports: rep }); });
+    clearTimeout(pfTimer.current); pfTimer.current = 0;
+    pfRef.current = pf; setPortfolioState(pf);
+    await persist(async () => { const db = await getBackend(); await db.replaceAll({ resumes: r, versions: v, applications: a, atsReports: rep, portfolios: pf ? [pf] : [] }); });
   }, [persist]);
 
   const clearAll = useCallback(async () => {
     setR([]); setV([]); setA([]); setRep([]);
-    await persist(async () => { const db = await getBackend(); await db.replaceAll({ resumes: [], versions: [], applications: [], atsReports: [] }); });
+    clearTimeout(pfTimer.current); pfTimer.current = 0;
+    pfRef.current = null; setPortfolioState(null);
+    await persist(async () => { const db = await getBackend(); await db.replaceAll({ resumes: [], versions: [], applications: [], atsReports: [], portfolios: [] }); });
   }, [persist]);
 
   const saveAtsReport = useCallback(async (rep: AtsReport) => {
@@ -257,10 +308,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [persist]);
 
   const value = useMemo<Store>(() => ({
-    ready, storageKind, resumes, versions, applications, atsReports, saveState, lastSaved, saveAtsReport, deleteAtsReport,
+    ready, storageKind, resumes, versions, applications, atsReports, portfolio, updatePortfolio, putPortfolio, deletePortfolio, saveState, lastSaved, saveAtsReport, deleteAtsReport,
     addResume, updateResume, deleteResume, duplicateResume, saveVersion, restoreVersion, deleteVersion,
     upsertApplication, deleteApplication, moveApplication, exportBackup, importBackup, clearAll,
-  }), [ready, storageKind, resumes, versions, applications, atsReports, saveAtsReport, deleteAtsReport, saveState, lastSaved, addResume, updateResume, deleteResume, duplicateResume,
+  }), [ready, storageKind, resumes, versions, applications, atsReports, portfolio, updatePortfolio, putPortfolio, deletePortfolio, saveAtsReport, deleteAtsReport, saveState, lastSaved, addResume, updateResume, deleteResume, duplicateResume,
     saveVersion, restoreVersion, deleteVersion, upsertApplication, deleteApplication, moveApplication, exportBackup, importBackup, clearAll]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -9,6 +9,7 @@ const NAV = [
   { key: 'home', href: '/', label: 'Dashboard', short: 'Home', icon: 'home' },
   { key: 'resumes', href: '/resumes', label: 'Resumes', short: 'Resumes', icon: 'file' },
   { key: 'ats', href: '/ats', label: 'ATS Check', short: 'ATS', icon: 'target' },
+  { key: 'portfolio', href: '/portfolio', label: 'My Portfolio', short: 'Portfolio', icon: 'globe' },
   { key: 'tracker', href: '/tracker', label: 'Applications', short: 'Tracker', icon: 'board' },
   { key: 'settings', href: '/settings', label: 'Data & settings', short: 'Settings', icon: 'settings' },
 ];
