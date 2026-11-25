@@ -1,4 +1,6 @@
-import type { AccentId, Backup, Resume, ResumeContent, TemplateId } from './types';
+import type { AccentId, Backup, FontId, Resume, ResumeContent, TemplateId } from './types';
+import { migrateTemplateId } from '../templates/registry';
+import { isValidAccent, FONTS } from './themes';
 import { nowIso, uid, fmtRange, fmtMonth } from './util';
 
 export function emptyContent(): ResumeContent {
@@ -11,6 +13,17 @@ export function emptyContent(): ResumeContent {
 export function newResume(name: string, content: ResumeContent = emptyContent(), template: TemplateId = 'executive', accent: AccentId = 'violet'): Resume {
   const t = nowIso();
   return { id: uid(), name, template, accent, content, createdAt: t, updatedAt: t };
+}
+
+const HEX = /^#[0-9a-f]{6}$/i;
+/** Keep saved data compatible: map old/unknown template, accent and font ids to valid ones. */
+export function migrateResume<T extends Pick<Resume, 'template' | 'accent' | 'customColor' | 'font'>>(r: T): T {
+  const template = migrateTemplateId(r.template);
+  let accent = isValidAccent(r.accent) ? r.accent : 'violet';
+  if (accent === 'custom' && !(r.customColor && HEX.test(r.customColor))) accent = 'violet';
+  const font: FontId | undefined = r.font && FONTS.some((f) => f.id === r.font) ? r.font : undefined;
+  if (template === r.template && accent === r.accent && font === r.font) return r;
+  return { ...r, template, accent, font };
 }
 
 /* ---------- JSON Resume import / export ---------- */
@@ -73,7 +86,7 @@ export function toJsonResume(r: Resume): object {
   return {
     $schema: 'https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json',
     ...stripEmpty(r.content),
-    meta: { canonical: '', version: 'v1.0.0', lastModified: r.updatedAt, theme: r.template, hireReady: { name: r.name, template: r.template, accent: r.accent } },
+    meta: { canonical: '', version: 'v1.0.0', lastModified: r.updatedAt, theme: r.template, hireReady: { name: r.name, template: r.template, accent: r.accent, customColor: r.customColor, font: r.font } },
   };
 }
 
@@ -83,12 +96,15 @@ export function fromJsonResume(input: unknown, fallbackName = 'Imported resume')
   const content = normalizeContent(o);
   const tpl = str(meta.template) as TemplateId;
   const acc = str(meta.accent) as AccentId;
-  return newResume(
+  const r = newResume(
     str(meta.name) || (content.basics.name ? `${content.basics.name} — Imported` : fallbackName),
-    content,
-    ['executive', 'elegant', 'modern'].includes(tpl) ? tpl : 'executive',
-    ['violet', 'teal', 'charcoal', 'coral', 'forest'].includes(acc) ? acc : 'violet',
+    content, tpl, acc,
   );
+  const cc = str(meta.customColor);
+  if (HEX.test(cc)) r.customColor = cc;
+  const f = str(meta.font);
+  if (f) r.font = f as FontId;
+  return migrateResume(r);
 }
 
 export function isBackup(v: unknown): v is Backup {
@@ -150,31 +166,4 @@ export function toPlainText(c: ResumeContent): string {
     c.awards.forEach((a) => L.push([a.title, a.awarder, fmtMonth(a.date)].filter(Boolean).join(' — ') + (a.summary ? `: ${a.summary}` : '')));
   }
   return L.join('\n').trim() + '\n';
-}
-
-/* ---------- Quick ATS-friendly checks ---------- */
-
-export interface Check { ok: boolean; label: string; tip: string }
-
-const ACTION = /^(led|built|designed|developed|created|reduced|increased|improved|launched|managed|implemented|automated|delivered|drove|owned|optimi[sz]ed|migrated|mentored|shipped|architected|analy[sz]ed|wrote|established|spearheaded|streamlined|achieved|won|organi[sz]ed|coordinated|redesigned|scaled|cut|grew|trained|taught|planned|researched|presented|collaborated|negotiated|resolved|introduced|added|integrated|deployed|engineered|conducted|prepared|produced|supported|handled|raised|saved)\b/i;
-
-export function atsChecks(c: ResumeContent): { score: number; checks: Check[] } {
-  const b = c.basics;
-  const bullets = [...c.work.flatMap((w) => w.highlights), ...c.projects.flatMap((p) => p.highlights)].filter((h) => h.trim());
-  const words = b.summary.trim().split(/\s+/).filter(Boolean).length;
-  const withNums = bullets.filter((h) => /\d/.test(h)).length;
-  const actionStart = bullets.filter((h) => ACTION.test(h.trim())).length;
-  const longOnes = bullets.filter((h) => h.split(/\s+/).length > 35).length;
-  const checks: Check[] = [
-    { ok: !!(b.name && b.email && b.phone), label: 'Name, email and phone present', tip: 'Recruiters and ATS parsers need basic contact details.' },
-    { ok: words >= 20 && words <= 90, label: 'Summary is 20–90 words', tip: `Currently ${words} words. Keep it to 2–4 focused sentences.` },
-    { ok: c.work.length + c.projects.length > 0, label: 'Experience or projects added', tip: 'Freshers: projects and internships count.' },
-    { ok: bullets.length > 0 && withNums / bullets.length >= 0.4, label: 'Bullets show measurable impact', tip: `${withNums}/${bullets.length} bullets include numbers. Aim for at least 40%.` },
-    { ok: bullets.length > 0 && actionStart / bullets.length >= 0.6, label: 'Bullets start with action verbs', tip: 'Start with verbs like Built, Led, Reduced, Designed.' },
-    { ok: longOnes === 0, label: 'Bullets are concise', tip: longOnes ? `${longOnes} bullet(s) exceed 35 words.` : 'Nice and scannable.' },
-    { ok: c.skills.reduce((n, s) => n + s.keywords.length + (s.name ? 1 : 0), 0) >= 6, label: 'At least 6 skills / keywords', tip: 'ATS systems match on keywords from the job post.' },
-    { ok: c.education.length > 0, label: 'Education listed', tip: 'Include degree, institution and year.' },
-  ];
-  const score = Math.round((checks.filter((x) => x.ok).length / checks.length) * 100);
-  return { score, checks };
 }

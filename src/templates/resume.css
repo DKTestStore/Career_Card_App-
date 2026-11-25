@@ -2,7 +2,7 @@
 .rdoc {
   --ink: #16122A; --body: #3A3450; --muted: #6B6580; --line: #E6E1F0;
   width: 794px; min-height: 1123px; background: #fff; color: var(--ink);
-  font-family: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-family: var(--r-body, 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif);
   font-size: 13px; line-height: 1.45; position: relative; text-align: left;
   -webkit-print-color-adjust: exact; print-color-adjust: exact;
   overflow-wrap: anywhere;
@@ -35,8 +35,8 @@
 .ex { display: flex; min-height: 1123px; }
 .ex-side { width: 252px; flex-shrink: 0; color: #fff; padding: 36px 24px 28px; }
 .ex-mono { width: 64px; height: 64px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4); display: flex; align-items: center; justify-content: center;
-  font-family: 'Fraunces', Georgia, 'Times New Roman', serif; font-weight: 600; font-size: 24px; margin-bottom: 18px; }
-.ex-name { font-family: 'Fraunces', Georgia, serif; font-size: 30px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em; }
+  font-family: var(--r-head, 'Fraunces', Georgia, 'Times New Roman', serif); font-weight: 600; font-size: 24px; margin-bottom: 18px; }
+.ex-name { font-family: var(--r-head, 'Fraunces', Georgia, serif); font-size: 30px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em; }
 .ex-role { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; opacity: .85; font-weight: 650; margin-top: 8px; padding-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,.22); }
 .ex-h { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; opacity: .65; margin: 20px 0 10px !important; font-weight: 700; }
 .ex-ci { font-size: 12px; line-height: 1.45; opacity: .95; margin-bottom: 8px; }
@@ -47,18 +47,18 @@
 .ex-pills { display: flex; flex-wrap: wrap; gap: 5px; }
 .ex-pills span { font-size: 11px; font-weight: 600; border: 1px solid rgba(255,255,255,.3); padding: 2px 9px; border-radius: 99px; }
 .ex-main { flex: 1; min-width: 0; padding: 36px 32px 28px; }
-.rdoc-executive .r-h { font-family: 'Fraunces', Georgia, serif; color: var(--sidebar); letter-spacing: .02em; padding-bottom: 4px; border-bottom: 1.5px solid var(--theme-soft); }
+.rdoc-executive .r-h { font-family: var(--r-head, 'Fraunces', Georgia, serif); color: var(--sidebar); letter-spacing: .02em; padding-bottom: 4px; border-bottom: 1.5px solid var(--theme-soft); }
 
 /* ---------- Elegant ---------- */
 .rdoc-elegant { background: #FFFCFA; }
 .el-head { text-align: center; padding: 38px 48px 6px; }
-.el-name { font-family: 'Fraunces', Georgia, serif; font-size: 40px; font-weight: 600; color: var(--theme); letter-spacing: -0.03em; line-height: 1.05; }
+.el-name { font-family: var(--r-head, 'Fraunces', Georgia, serif); font-size: 40px; font-weight: 600; color: var(--theme); letter-spacing: -0.03em; line-height: 1.05; }
 .el-role { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: #5A546C; margin-top: 8px; font-weight: 650; }
 .el-rule { height: 1px; background: var(--theme); opacity: .5; margin: 16px 90px 0; }
 .el-body { display: flex; gap: 24px; padding: 20px 32px 32px; }
 .el-side { width: 220px; flex-shrink: 0; background: var(--theme-soft); border-radius: 10px; padding: 18px 16px; align-self: flex-start; }
 .el-side .r-sec + .r-sec, .el-side .r-sec { margin-top: 18px; }
-.el-h, .rdoc-elegant .r-h { font-family: 'Fraunces', Georgia, serif; font-size: 13px; font-weight: 600; color: var(--theme); letter-spacing: .1em; text-transform: uppercase; margin: 0 0 8px !important; }
+.el-h, .rdoc-elegant .r-h { font-family: var(--r-head, 'Fraunces', Georgia, serif); font-size: 13px; font-weight: 600; color: var(--theme); letter-spacing: .1em; text-transform: uppercase; margin: 0 0 8px !important; }
 .el-side .el-h ~ .el-h { margin-top: 18px !important; }
 .rdoc-elegant .el-main .r-h { font-size: 14px; }
 .el-ci { font-size: 12px; color: var(--body); margin-bottom: 7px; line-height: 1.45; }
@@ -70,7 +70,7 @@
 /* ---------- Modern ---------- */
 .rdoc-modern .mo { padding: 44px 52px 36px 56px; }
 .mo-accent { position: absolute; left: 0; top: 0; bottom: 0; width: 10px; background: var(--theme); }
-.mo-name { font-size: 34px; font-weight: 750; letter-spacing: -0.035em; color: var(--theme); line-height: 1.1; }
+.mo-name { font-family: var(--r-head, inherit); font-size: 34px; font-weight: 750; letter-spacing: -0.035em; color: var(--theme); line-height: 1.1; }
 .mo-title { font-size: 13px; font-weight: 650; color: var(--body); margin-top: 6px; letter-spacing: .08em; text-transform: uppercase; }
 .mo-contact { font-size: 12px; color: var(--muted); margin-top: 10px; padding-bottom: 14px; border-bottom: 2px solid var(--theme); margin-bottom: 18px; white-space: pre-wrap; }
 .rdoc-modern .r-h { font-size: 13px; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; color: var(--theme); }

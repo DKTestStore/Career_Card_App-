@@ -62,14 +62,20 @@ export interface ResumeContent {
   awards: Award[];
 }
 
-export type TemplateId = 'executive' | 'elegant' | 'modern';
-export type AccentId = 'violet' | 'teal' | 'charcoal' | 'coral' | 'forest';
+/** Template ids are validated against the registry in templates/registry.ts. */
+export type TemplateId = string;
+/** Accent preset id from lib/themes.ts, or 'custom' (uses Resume.customColor). */
+export type AccentId = string;
+export type FontId = 'auto' | 'sans' | 'serif' | 'classic';
 
 export interface Resume {
   id: string;
   name: string;
   template: TemplateId;
   accent: AccentId;
+  /** Hex colour used when accent === 'custom'. */
+  customColor?: string;
+  font?: FontId;
   content: ResumeContent;
   createdAt: string;
   updatedAt: string;
@@ -81,7 +87,7 @@ export interface ResumeVersion {
   number: number;
   label: string;
   createdAt: string;
-  snapshot: Pick<Resume, 'name' | 'template' | 'accent' | 'content'>;
+  snapshot: Pick<Resume, 'name' | 'template' | 'accent' | 'content' | 'customColor' | 'font'>;
 }
 
 export const STATUSES = ['wishlist', 'applied', 'interview', 'offer', 'rejected'] as const;
@@ -101,9 +107,26 @@ export interface Application {
   notes: string;
   followUp: string;
   contact: string;
+  /** Optional link to a saved ATS report. */
+  atsReportId?: string;
   order: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AtsBreakdownItem { key: string; label: string; score: number; max: number; detail: string }
+
+export interface AtsReport {
+  id: string;
+  resumeId: string;
+  resumeName: string;
+  jdTitle: string;
+  jdText: string;
+  score: number;
+  breakdown: AtsBreakdownItem[];
+  matched: string[];
+  missing: string[];
+  createdAt: string;
 }
 
 export interface Backup {
@@ -113,4 +136,5 @@ export interface Backup {
   resumes: Resume[];
   versions: ResumeVersion[];
   applications: Application[];
+  atsReports?: AtsReport[];
 }

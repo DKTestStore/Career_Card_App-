@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { ResumeContent } from '../lib/types';
 import { AutoTextarea, BulletList, EntryCard, Field, ListInput, MonthField } from './fields';
 import { Icon } from './Icon';
@@ -6,7 +6,7 @@ import { fmtRange, move, uid } from '../lib/util';
 
 type Edit = (fn: (c: ResumeContent) => void) => void;
 
-type Key = 'basics' | 'summary' | 'work' | 'education' | 'projects' | 'skills' | 'certificates' | 'awards';
+export type Key = 'basics' | 'summary' | 'work' | 'education' | 'projects' | 'skills' | 'certificates' | 'awards';
 
 function Section({ k, label, count, open, toggle, children }: { k: Key; label: string; count?: number; open: boolean; toggle: (k: Key) => void; children: ReactNode }) {
   return (
@@ -23,8 +23,19 @@ function Section({ k, label, count, open, toggle, children }: { k: Key; label: s
   );
 }
 
-export function EditorForm({ c, edit }: { c: ResumeContent; edit: Edit }) {
-  const [open, setOpen] = useState<Set<Key>>(new Set(['basics']));
+export function EditorForm({ c, edit, focus }: { c: ResumeContent; edit: Edit; focus?: { key: Key; n: number } | null }) {
+  const [open, setOpen] = useState<Set<Key>>(new Set([focus?.key ?? 'basics']));
+  // "Fix" links from the ATS checker open + scroll to a section.
+  useEffect(() => {
+    if (!focus) return;
+    setOpen((s) => new Set(s).add(focus.key));
+    const t = window.setTimeout(() => {
+      const el = document.getElementById(`acc-${focus.key}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el?.focus({ preventScroll: true });
+    }, 60);
+    return () => clearTimeout(t);
+  }, [focus]);
   const toggle = (k: Key) => setOpen((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
   const [fresh, setFresh] = useState<string | null>(null);
   const b = c.basics;
@@ -134,6 +145,7 @@ export function EditorForm({ c, edit }: { c: ResumeContent; edit: Edit }) {
             onMove={(to) => S.move(i, to)} onRemove={() => S.remove(i)}>
             <Field label="Group name" value={s.name} onChange={(v) => S.set(i, (x) => { x.name = v; })} placeholder="Languages" />
             <ListInput label="Skills" value={s.keywords} onChange={(v) => S.set(i, (x) => { x.keywords = v; })} placeholder="Python, TypeScript, SQL" />
+            <Field label="Level (optional, used by skill-bar templates)" value={s.level ?? ''} onChange={(v) => S.set(i, (x) => { x.level = v; })} placeholder="Expert, Advanced, 80%" />
           </EntryCard>
         ))}
         <button type="button" className="btn btn-soft btn-sm" onClick={() => add('skills', { id: uid(), name: '', keywords: [] } as never)}><Icon name="plus" size={15} /> Add skill group</button>

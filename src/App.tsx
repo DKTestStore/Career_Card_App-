@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Layout } from './components/Layout';
 import { usePath, navigate } from './lib/router';
 import { useStore } from './lib/store';
@@ -10,6 +10,9 @@ import { Tracker } from './pages/Tracker';
 import { SettingsPage } from './pages/SettingsPage';
 import { WelcomePage } from './pages/Welcome';
 import { LogoutPage } from './pages/Logout';
+
+// Keyword dictionary + ATS page load on demand to keep the first load light.
+const AtsPage = lazy(() => import('./pages/AtsPage'));
 
 function isGate(path: string) {
   return path === '/welcome' || path === '/logout' || path === '/signed-out';
@@ -37,11 +40,12 @@ export function App() {
   }
 
   const m = /^\/resumes\/([^/]+)/.exec(path);
-  const section = m ? 'resumes' : path.startsWith('/resumes') ? 'resumes' : path.startsWith('/tracker') ? 'tracker' : path.startsWith('/settings') ? 'settings' : 'home';
+  const section = m ? 'resumes' : path.startsWith('/resumes') ? 'resumes' : path.startsWith('/ats') ? 'ats' : path.startsWith('/tracker') ? 'tracker' : path.startsWith('/settings') ? 'settings' : 'home';
 
   let page;
   if (m) page = <Editor id={decodeURIComponent(m[1])} />;
   else if (section === 'resumes') page = <ResumesPage />;
+  else if (section === 'ats') page = <Suspense fallback={<div className="loading" role="status">Loading ATS checker…</div>}><AtsPage /></Suspense>;
   else if (section === 'tracker') page = <Tracker />;
   else if (section === 'settings') page = <SettingsPage />;
   else page = <Dashboard />;

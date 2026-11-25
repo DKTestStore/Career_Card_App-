@@ -8,11 +8,11 @@ All user data stays in the current browser. Nothing is sent to a server.
 
 | Location | What it stores |
 |---|---|
-| **IndexedDB** (`hire-ready`, via the `idb` library) | `resumes`, `versions` (up to 50 snapshots per resume), `applications`. If IndexedDB is unavailable, the app falls back to `localStorage`, then to in-memory storage (not persisted). |
+| **IndexedDB** (`hire-ready`, via the `idb` library) | `resumes`, `versions` (up to 50 snapshots per resume), `applications`, `atsReports` (DB version 2; added in 0.3.0). If IndexedDB is unavailable, the app falls back to `localStorage`, then to in-memory storage (not persisted). |
 | **localStorage** `hire-ready:session` | Guest session flag (`provider`, `firstName`, `signedInAt`). Cleared on sign-out so the next visit shows the Welcome page. |
 | **localStorage** `hire-ready:profile` | Display name used for the greeting. Kept on “keep my data” sign-out so “Sign back in” can restore it. Removed when the user chooses to erase data. |
 
-Resume content follows the [JSON Resume](https://jsonresume.org/schema) shape (`basics`, `work`, `education`, `projects`, `skills`, `certificates`, `awards`), plus Hire Ready fields (`template`, `accent`, internal `id`s). Full-workspace backups use `{ app: "hire-ready", schema: 1, resumes, versions, applications }`.
+Resume content follows the [JSON Resume](https://jsonresume.org/schema) shape (`basics`, `work`, `education`, `projects`, `skills`, `certificates`, `awards`), plus Hire Ready fields (`template`, `accent`, internal `id`s). Full-workspace backups use `{ app: "hire-ready", schema: 1, resumes, versions, applications, atsReports? }` (older backups without `atsReports` still import).
 
 Privacy defaults:
 
@@ -20,6 +20,20 @@ Privacy defaults:
 - Fonts are bundled with the app (no Google Fonts request).
 - Public share links and cloud sync are not in Phase 1.
 - “Sign out and erase” (and Data & settings → Delete all data) removes resumes, versions, applications, and the saved profile from this device.
+
+## Templates and colours
+
+- `src/templates/registry.ts` lists every template: `{ id, name, category, ats, blurb, config? }`. `ats: true` means ATS-friendly (single reading order, standard headings, no graphics); `false` means design-focused. The ATS score's formatting check reads this tag.
+- Executive, Elegant and Modern have bespoke renderers. All other templates are a `config` for the shared `Generic` renderer (`src/templates/Generic.tsx` + `generic.css`): layout (single, sidebar left/right with dark/tint/line styles, gutter), header (left, center, split, band, initials), heading style (rule, caps, bar, underline, pill, plain, mono, box, double), font, density, skills style (inline, chips, bars, list), timeline, monochrome, section order and labels. Adding a template is one registry entry.
+- Colours (`src/lib/themes.ts`): each preset is one base colour. `deriveAccent()` computes `--theme` (darkened until 4.5:1 contrast on white), `--sidebar` (dark panel colour, 8:1 with white text) and `--theme-soft` (10% tint). A custom colour (`accent: 'custom'` + `customColor`) uses the same function.
+- Fonts: templates set `--r-head` / `--r-body`; a user font choice overrides them inline.
+- Migration: on load and on import, `migrateResume()` maps unknown template ids to Executive and unknown colours to Violet, so older data always renders. IndexedDB upgrades from version 1 to 2 by adding the `atsReports` store; existing data is untouched.
+
+## ATS checker
+
+- `src/lib/ats/score.ts` (in the main bundle, used by the editor panel and resume cards): rule-based scoring, suggestions and bullet rewrites. Pure functions, no network.
+- `src/lib/ats/keywords.ts` + `samples.ts` (lazy-loaded with the `/ats` page via `React.lazy`): skills dictionary with aliases, stopwords, n-gram extraction, keyword matching, and "where to add" hints.
+- Fix links navigate to `/resumes/:id?section=<key>`; the editor opens and scrolls to that section (switching to the Edit tab on mobile).
 
 ## Auth module
 
@@ -48,7 +62,8 @@ Client-side paths (the host rewrites unknown URLs to `index.html`):
 
 - `/welcome` — first visit / signed-out entry
 - `/` — dashboard (signed-in)
-- `/resumes`, `/resumes/:id` — list and editor
+- `/resumes`, `/resumes/:id` — list and editor (`?section=skills` opens a section)
+- `/ats` — ATS checker (`?resume=<id>` preselects a resume; lazy-loaded)
 - `/tracker` — application board / list
 - `/settings` — backup and data controls
 - `/logout` (alias `/signed-out`) — post sign-out confirmation

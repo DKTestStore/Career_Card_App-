@@ -12,6 +12,11 @@ def shot(page, name, full=False):
     page.screenshot(path=os.path.join(OUT, name), full_page=full)
     print('shot', name)
 
+def pick_template(page, tid):
+    page.get_by_test_id('browse-templates').click()
+    page.locator(f'.gal-grid button[data-template="{tid}"]').click()
+    page.wait_for_timeout(100)
+
 def d(days):
     return (datetime.date.today() + datetime.timedelta(days=days)).isoformat()
 
@@ -59,10 +64,10 @@ with sync_playwright() as p:
     expect(page.locator('.ed-preview .rdoc')).not_to_contain_text('Acme Robotics')
     page.locator('#acc-work').click()
     # --- template + colour ---
-    page.locator('[data-template="elegant"]').click()
+    pick_template(page, 'elegant')
     expect(page.locator('.ed-preview .rdoc')).to_have_class('rdoc rdoc-elegant')
     page.get_by_role('radio', name='Teal').click()
-    page.locator('[data-template="executive"]').click()
+    pick_template(page, 'executive')
     page.get_by_role('radio', name='Violet').click()
     expect(page.locator('.ed-preview .rdoc')).to_have_class('rdoc rdoc-executive')
     # --- save version ---

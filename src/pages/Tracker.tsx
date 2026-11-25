@@ -175,6 +175,8 @@ function AppCard({ a, today, resumeLabel, onOpen, onMove, onDragStart, onDragEnd
   onDragStart: (e: DragEvent<HTMLElement>) => void; onDragEnd: () => void; onDragOver: (e: DragEvent<HTMLElement>) => void; dragging: boolean; showDropBefore: boolean;
 }) {
   const idx = STATUSES.indexOf(a.status);
+  const { atsReports } = useStore();
+  const rep = a.atsReportId ? atsReports.find((r) => r.id === a.atsReportId) : undefined;
   return (
     <>
       {showDropBefore && <div className="drop-line" />}
@@ -186,6 +188,7 @@ function AppCard({ a, today, resumeLabel, onOpen, onMove, onDragStart, onDragEnd
         <div className="app-meta">
           {resumeLabel && <span className="pill pill-violet" title="Resume used">{resumeLabel}</span>}
           {a.salary && <span className="pill pill-teal">{a.salary}</span>}
+          {rep && <span className={`ats-chip ${rep.score >= 75 ? 'good' : rep.score >= 50 ? 'ok' : 'low'}`} title={`ATS report: ${rep.jdTitle}`}>ATS {rep.score}</span>}
           {a.dateApplied && <span className="app-date">{fmtDate(a.dateApplied)}</span>}
         </div>
         <FollowBadge a={a} today={today} />

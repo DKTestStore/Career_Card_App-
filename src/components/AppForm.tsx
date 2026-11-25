@@ -16,7 +16,7 @@ export function blankApp(status: AppStatus = 'applied'): Application {
 }
 
 export function AppForm({ initial, isNew, onClose }: { initial: Application; isNew: boolean; onClose: () => void }) {
-  const { resumes, versions, upsertApplication, deleteApplication } = useStore();
+  const { resumes, versions, atsReports, upsertApplication, deleteApplication } = useStore();
   const toast = useToast();
   const [a, setA] = useState<Application>(initial);
   const [confirmDel, setConfirmDel] = useState(false);
@@ -68,6 +68,14 @@ export function AppForm({ initial, isNew, onClose }: { initial: Application; isN
           <select id="app-version" value={a.versionId} onChange={(e) => set('versionId', e.target.value)} disabled={!a.resumeId}>
             <option value="">Current (latest edits)</option>
             {vers.map((v) => <option key={v.id} value={v.id}>v{v.number} · {v.label}</option>)}
+          </select>
+        </div>
+        <div className="field span2">
+          <label htmlFor="app-ats">ATS report</label>
+          <select id="app-ats" value={a.atsReportId ?? ''} onChange={(e) => set('atsReportId', e.target.value || undefined)}>
+            <option value="">— None —</option>
+            {atsReports.filter((r) => !a.resumeId || r.resumeId === a.resumeId).map((r) => <option key={r.id} value={r.id}>{r.score}/100 · {r.jdTitle} ({r.resumeName})</option>)}
+            {a.atsReportId && !atsReports.some((r) => r.id === a.atsReportId) && <option value={a.atsReportId}>(deleted report)</option>}
           </select>
         </div>
         <div className="span2"><AutoTextarea label="Notes" rows={3} value={a.notes} onChange={(v) => set('notes', v)} placeholder="Interview rounds, referral, questions asked…" /></div>

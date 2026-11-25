@@ -1,20 +1,39 @@
 import type { CSSProperties, ReactNode } from 'react';
 import type { Resume, ResumeContent } from '../lib/types';
-import { ACCENTS } from '../lib/themes';
+import { FONTS, resolveAccent } from '../lib/themes';
 import { fmtMonth, fmtRange, initials } from '../lib/util';
+import { templateById, type GenericConfig } from './registry';
+import { Generic } from './Generic';
 import './resume.css';
+import './generic.css';
 
-type Props = { resume: Pick<Resume, 'template' | 'accent' | 'content'>; id?: string };
+type Props = { resume: Pick<Resume, 'template' | 'accent' | 'content' | 'customColor' | 'font'>; id?: string };
 
 export function ResumeDoc({ resume, id }: Props) {
-  const a = ACCENTS[resume.accent] ?? ACCENTS.violet;
-  const style = { '--theme': a.theme, '--sidebar': a.sidebar, '--theme-soft': a.soft } as CSSProperties;
+  const a = resolveAccent(resume);
+  const f = FONTS.find((x) => x.id === resume.font);
+  const style = {
+    '--theme': a.theme, '--sidebar': a.sidebar, '--theme-soft': a.soft,
+    ...(f?.head ? { '--r-head': f.head, '--r-body': f.body } : {}),
+  } as CSSProperties;
   const c = resume.content;
+  const def = templateById(resume.template);
+  const cfg: GenericConfig | undefined = def.config;
+  const cls = cfg ? genericClasses(cfg) : `rdoc-${def.id}`;
   return (
-    <article id={id} className={`rdoc rdoc-${resume.template}`} style={style} aria-label="Resume preview">
-      {resume.template === 'executive' ? <Executive c={c} /> : resume.template === 'elegant' ? <Elegant c={c} /> : <Modern c={c} />}
+    <article id={id} className={`rdoc ${cls}`} style={style} aria-label="Resume preview" data-tpl={def.id}>
+      {cfg ? <Generic c={c} cfg={cfg} /> : def.id === 'executive' ? <Executive c={c} /> : def.id === 'elegant' ? <Elegant c={c} /> : <Modern c={c} />}
     </article>
   );
+}
+
+function genericClasses(cfg: GenericConfig): string {
+  const sideDark = cfg.layout === 'sidebar' && cfg.sideStyle === 'dark';
+  return [
+    'rdoc-generic', `g-l-${cfg.layout}`, `g-hd-${cfg.header}`, `g-h-${cfg.head}`, `g-f-${cfg.font}`, `g-d-${cfg.density}`,
+    cfg.layout === 'sidebar' ? `g-side-${cfg.side ?? 'left'} g-ss-${cfg.sideStyle ?? 'tint'}` : '',
+    sideDark ? 'g-dark' : '', cfg.mono ? 'g-mono' : '', cfg.timeline ? 'g-timeline' : '',
+  ].filter(Boolean).join(' ');
 }
 
 const loc = (c: ResumeContent) => [c.basics.location.city, c.basics.location.region, c.basics.location.countryCode].filter(Boolean).join(', ');

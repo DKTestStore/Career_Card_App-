@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useStore, MAX_VERSIONS } from '../lib/store';
-import { linkClick, navigate } from '../lib/router';
-import type { AccentId, Resume, ResumeContent, ResumeVersion, TemplateId } from '../lib/types';
+import { linkClick, navigate, useQuery } from '../lib/router';
+import type { FontId, Resume, ResumeContent, ResumeVersion } from '../lib/types';
 import { ResumeDoc } from '../templates/ResumeDoc';
-import { EditorForm } from '../components/EditorForm';
+import { EditorForm, type Key } from '../components/EditorForm';
 import { ResumeThumb } from '../components/ResumeGrid';
 import { Icon } from '../components/Icon';
 import { ConfirmDialog } from '../components/Modal';
 import { useToast } from '../components/Toast';
-import { ACCENTS, ACCENT_IDS, TEMPLATES } from '../lib/themes';
-import { atsChecks, toJsonResume, toPlainText } from '../lib/resume';
+import { ACCENT_PRESETS, FONTS, accentById, resolveAccent } from '../lib/themes';
+import { toJsonResume, toPlainText } from '../lib/resume';
+import { templateById } from '../templates/registry';
+import { analyze, type FixTarget } from '../lib/ats/score';
+import { TemplateGallery } from '../components/TemplateGallery';
+import { Gauge } from '../components/Gauge';
 import { download, slug, timeAgo } from '../lib/util';
 
 type Tab = 'edit' | 'preview' | 'design';
@@ -21,6 +25,21 @@ export function Editor({ id }: { id: string }) {
   const [tab, setTab] = useState<Tab>('edit');
   const toast = useToast();
   const [exportOpen, setExportOpen] = useState(false);
+  const query = useQuery();
+  const sectionParam = query.get('section');
+  const [focus, setFocus] = useState<{ key: Key; n: number } | null>(null);
+  const goFix = useCallback((t: FixTarget) => {
+    if (t === 'design') { setTab('design'); document.getElementById('tpl-label')?.scrollIntoView({ behavior: 'smooth' }); return; }
+    setTab('edit');
+    setFocus({ key: t as Key, n: Date.now() });
+  }, []);
+  // /resumes/:id?section=skills (from the ATS page) opens and scrolls to that section.
+  useEffect(() => {
+    if (!sectionParam) return;
+    const keys = ['basics', 'summary', 'work', 'education', 'projects', 'skills', 'certificates', 'awards', 'design'];
+    if (keys.includes(sectionParam)) goFix(sectionParam as FixTarget);
+    history.replaceState(null, '', location.pathname);
+  }, [sectionParam, goFix]);
 
   const edit = useCallback((fn: (c: ResumeContent) => void) => {
     updateResume(id, (r) => { const c = structuredClone(r.content); fn(c); return { ...r, content: c }; });
@@ -86,15 +105,15 @@ export function Editor({ id }: { id: string }) {
       <div className="ed-cols" data-tab={tab}>
         <section className="ed-panel ed-form" id="pane-edit" role="tabpanel" aria-labelledby="tab-edit" aria-label="Sections">
           <div className="panel-head"><h2>Sections</h2><span className="muted small">Autosaves as you type</span></div>
-          <div className="panel-scroll"><EditorForm c={resume.content} edit={edit} /></div>
+          <div className="panel-scroll"><EditorForm c={resume.content} edit={edit} focus={focus} /></div>
         </section>
         <section className="ed-panel ed-preview" id="pane-preview" role="tabpanel" aria-labelledby="tab-preview" aria-label="Live preview">
-          <div className="panel-head"><h2>Live preview</h2><span className="muted small">{TEMPLATES.find((t) => t.id === resume.template)?.name} · A4</span></div>
+          <div className="panel-head"><h2>Live preview</h2><span className="muted small">{templateById(resume.template).name} · A4</span></div>
           <ScaledPreview resume={resume} />
         </section>
         <section className="ed-panel ed-design" id="pane-design" role="tabpanel" aria-labelledby="tab-design" aria-label="Design and versions">
           <div className="panel-head"><h2>Design &amp; versions</h2></div>
-          <div className="panel-scroll"><DesignPanel resume={resume} versions={myVersions} /></div>
+          <div className="panel-scroll"><DesignPanel resume={resume} versions={myVersions} onFix={goFix} /></div>
         </section>
       </div>
 
@@ -159,49 +178,81 @@ function ScaledPreview({ resume }: { resume: Resume }) {
   );
 }
 
-function DesignPanel({ resume, versions }: { resume: Resume; versions: ResumeVersion[] }) {
+function DesignPanel({ resume, versions, onFix }: { resume: Resume; versions: ResumeVersion[]; onFix: (t: FixTarget) => void }) {
   const { updateResume, saveVersion, restoreVersion, deleteVersion } = useStore();
   const toast = useToast();
   const [label, setLabel] = useState('');
   const [restoring, setRestoring] = useState<ResumeVersion | null>(null);
-  const checks = useMemo(() => atsChecks(resume.content), [resume.content]);
-  const setTpl = (t: TemplateId) => updateResume(resume.id, (r) => ({ ...r, template: t }));
-  const setAcc = (a: AccentId) => updateResume(resume.id, (r) => ({ ...r, accent: a }));
+  const [gallery, setGallery] = useState(false);
+  const ats = useMemo(() => analyze(resume), [resume]);
+  const tpl = templateById(resume.template);
+  const acc = resolveAccent(resume);
+  const set = (patch: Partial<Resume>) => updateResume(resume.id, (r) => ({ ...r, ...patch }));
 
   return (
     <div className="design">
       <h3 className="block-label" id="tpl-label">Template</h3>
-      <div className="tpl-grid" role="radiogroup" aria-labelledby="tpl-label">
-        {TEMPLATES.map((t) => (
-          <button key={t.id} type="button" role="radio" aria-checked={resume.template === t.id} className={`tpl${resume.template === t.id ? ' active' : ''}`}
-            onClick={() => setTpl(t.id)} title={t.blurb} data-template={t.id}>
-            <ResumeThumb resume={{ ...resume, template: t.id }} scale={0.095} />
-            <span>{t.name}</span>
+      <div className="tpl-current">
+        <button type="button" className="tpl-cur-thumb" onClick={() => setGallery(true)} aria-label="Change template">
+          <ResumeThumb resume={resume} scale={0.12} />
+        </button>
+        <div className="tpl-cur-info">
+          <b data-testid="current-template">{tpl.name}</b>
+          <span className={`tag ${tpl.ats ? 'tag-ats' : 'tag-design'}`}>{tpl.ats ? 'ATS-friendly' : 'Design-focused'}</span>
+          <small className="muted">{tpl.blurb}</small>
+          <button type="button" className="btn btn-outline btn-sm" onClick={() => setGallery(true)} data-testid="browse-templates">
+            <Icon name="templates" size={15} /> Browse all templates
           </button>
-        ))}
+        </div>
       </div>
+      {gallery && <TemplateGallery resume={resume} onPick={(t) => set({ template: t })} onClose={() => setGallery(false)} />}
 
-      <h3 className="block-label" id="acc-label">Colour theme</h3>
+      <h3 className="block-label" id="acc-label">Colour theme <span className="muted">· {acc.name}</span></h3>
       <div className="swatches" role="radiogroup" aria-labelledby="acc-label">
-        {ACCENT_IDS.map((a) => (
-          <button key={a} type="button" role="radio" aria-checked={resume.accent === a} aria-label={ACCENTS[a].name} title={ACCENTS[a].name}
-            className={`swatch${resume.accent === a ? ' active' : ''}`} style={{ background: ACCENTS[a].theme }} onClick={() => setAcc(a)} />
+        {ACCENT_PRESETS.map((a) => (
+          <button key={a.id} type="button" role="radio" aria-checked={resume.accent === a.id} aria-label={a.name} title={a.name}
+            className={`swatch${resume.accent === a.id ? ' active' : ''}`} style={{ background: accentById(a.id).theme }} onClick={() => set({ accent: a.id })} />
         ))}
+        <label className={`swatch swatch-custom${resume.accent === 'custom' ? ' active' : ''}`} title="Custom colour"
+          style={resume.accent === 'custom' ? { background: acc.theme } : undefined}>
+          <span className="sr-only">Custom colour</span>
+          <input type="color" aria-label="Custom colour" value={resume.customColor ?? '#5B3DF5'}
+            onChange={(e) => set({ accent: 'custom', customColor: e.target.value.toUpperCase() })} />
+          {resume.accent !== 'custom' && <Icon name="plus" size={14} />}
+        </label>
       </div>
+      {resume.accent === 'custom' && acc.darkened && (
+        <p className="small muted contrast-note" data-testid="contrast-note">Darkened to {acc.theme} for readable text (WCAG AA). Picked: {acc.base}.</p>
+      )}
 
-      <div className="checks card-soft">
+      <h3 className="block-label"><label htmlFor="font-pick">Font pairing</label></h3>
+      <select id="font-pick" className="font-pick" value={resume.font ?? 'auto'} onChange={(e) => set({ font: e.target.value === 'auto' ? undefined : e.target.value as FontId })}>
+        {FONTS.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+      </select>
+
+      <div className="checks card-soft ats-mini">
         <div className="checks-head">
-          <h3 className="block-label">Quick ATS checks</h3>
-          <span className={`ats-chip ${checks.score >= 75 ? 'good' : checks.score >= 50 ? 'ok' : 'low'}`}>{checks.score}%</span>
+          <h3 className="block-label">ATS score</h3>
+          <a className="link small" href={`/ats?resume=${resume.id}`} onClick={linkClick}>Check against a job →</a>
+        </div>
+        <div className="ats-mini-row">
+          <Gauge score={ats.score} size={120} />
+          <ul className="ats-mini-bd">
+            {ats.breakdown.map((b) => (
+              <li key={b.key}><span>{b.label}</span><b>{Math.round(b.score)}/{b.max}</b></li>
+            ))}
+          </ul>
         </div>
         <ul>
-          {checks.checks.map((c) => (
-            <li key={c.label} className={c.ok ? 'ok' : 'no'}>
-              <Icon name={c.ok ? 'check' : 'alert'} size={15} />
-              <div><b>{c.label}</b>{!c.ok && <small>{c.tip}</small>}</div>
+          {ats.suggestions.slice(0, 5).map((x) => (
+            <li key={x.id} className={x.severity === 'low' ? 'ok' : 'no'}>
+              <span className={`sev sev-${x.severity}`}>{x.severity}</span>
+              <div>{x.text} {x.target && <button type="button" className="link-btn" onClick={() => onFix(x.target!)}>Fix</button>}</div>
             </li>
           ))}
+          {ats.suggestions.length === 0 && <li className="ok"><Icon name="check" size={15} /><div><b>Looks great.</b> Now check it against a real job description.</div></li>}
         </ul>
+        <p className="small muted">General score without a job description. Keyword match is added on the ATS page.</p>
       </div>
 
       <h3 className="block-label">Versions <span className="muted">({versions.length}/{MAX_VERSIONS})</span></h3>
@@ -214,7 +265,7 @@ function DesignPanel({ resume, versions }: { resume: Resume; versions: ResumeVer
         <ul className="ver-list">
           {versions.map((v) => (
             <li key={v.id}>
-              <div><b>v{v.number} · {v.label}</b><small>{timeAgo(v.createdAt)} · {TEMPLATES.find((t) => t.id === v.snapshot.template)?.name}</small></div>
+              <div><b>v{v.number} · {v.label}</b><small>{timeAgo(v.createdAt)} · {templateById(v.snapshot.template).name}</small></div>
               <div className="mini-actions">
                 <button type="button" className="btn btn-ghost btn-xs" onClick={() => setRestoring(v)} aria-label={`Restore version ${v.number}`}><Icon name="history" size={14} /> Restore</button>
                 <button type="button" className="icon-btn xs danger" onClick={() => deleteVersion(v.id)} aria-label={`Delete version ${v.number}`}><Icon name="trash" size={14} /></button>

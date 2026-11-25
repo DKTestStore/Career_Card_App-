@@ -29,3 +29,15 @@ export function linkClick(e: MouseEvent<HTMLAnchorElement>) {
   e.preventDefault();
   navigate(href);
 }
+
+/** Reactive URLSearchParams for the current location. */
+export function useQuery(): URLSearchParams {
+  const [q, setQ] = useState(location.search);
+  useEffect(() => {
+    const on = () => setQ(location.search);
+    window.addEventListener('popstate', on);
+    window.addEventListener(EVT, on);
+    return () => { window.removeEventListener('popstate', on); window.removeEventListener(EVT, on); };
+  }, []);
+  return new URLSearchParams(q);
+}

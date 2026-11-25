@@ -3,9 +3,11 @@ import type { Resume } from '../lib/types';
 import { useStore } from '../lib/store';
 import { navigate } from '../lib/router';
 import { ResumeDoc } from '../templates/ResumeDoc';
-import { ACCENTS, TEMPLATES } from '../lib/themes';
+import { accentById, resolveAccent } from '../lib/themes';
+import { templateById } from '../templates/registry';
+import { analyze } from '../lib/ats/score';
 import { download, readFileText, slug, timeAgo } from '../lib/util';
-import { fromJsonResume, isBackup, newResume, toJsonResume, atsChecks } from '../lib/resume';
+import { fromJsonResume, isBackup, newResume, toJsonResume } from '../lib/resume';
 import { SAMPLES, sampleContent } from '../lib/samples';
 import { ConfirmDialog, Modal } from './Modal';
 import { Icon } from './Icon';
@@ -52,9 +54,9 @@ function NewResumeModal({ onClose }: { onClose: () => void }) {
         </button>
         {SAMPLES.map((s) => (
           <button type="button" key={s.key} className="start-card" onClick={() => create(s.key)} data-sample={s.key}>
-            <span className="start-ico" style={{ background: ACCENTS[s.accent].soft, color: ACCENTS[s.accent].theme }}><Icon name="file" size={22} /></span>
+            <span className="start-ico" style={{ background: accentById(s.accent).soft, color: accentById(s.accent).theme }}><Icon name="file" size={22} /></span>
             <b>{s.title}</b>
-            <small>{s.blurb} · {TEMPLATES.find((t) => t.id === s.template)?.name}</small>
+            <small>{s.blurb} · {templateById(s.template).name}</small>
           </button>
         ))}
       </div>
@@ -96,7 +98,9 @@ export function ResumeGrid({ resumes, limit }: { resumes: Resume[]; limit?: numb
       <div className="resume-grid">
         {list.map((r) => {
           const vcount = versions.filter((v) => v.resumeId === r.id).length;
-          const ats = atsChecks(r.content).score;
+          const ats = analyze(r).score;
+          const acc = resolveAccent(r);
+          const tpl = templateById(r.template);
           return (
             <article className="card resume-card" key={r.id}>
               <a href={`/resumes/${r.id}`} className="rc-thumb" onClick={(e) => { e.preventDefault(); navigate(`/resumes/${r.id}`); }} aria-label={`Open ${r.name}`}>
@@ -106,12 +110,12 @@ export function ResumeGrid({ resumes, limit }: { resumes: Resume[]; limit?: numb
                 <h3 className="rc-title">{r.name}</h3>
                 <p className="muted small">{r.content.basics.label || 'No headline yet'}</p>
                 <div className="pills">
-                  <span className="pill pill-violet">{TEMPLATES.find((t) => t.id === r.template)?.name}</span>
-                  <span className="pill"><i className="dot" style={{ background: ACCENTS[r.accent].theme }} />{ACCENTS[r.accent].name}</span>
+                  <span className="pill pill-violet">{tpl.name}</span>
+                  <span className="pill"><i className="dot" style={{ background: acc.theme }} />{acc.name}</span>
                 </div>
                 <p className="small muted">{vcount} version{vcount === 1 ? '' : 's'} · Edited {timeAgo(r.updatedAt)}</p>
                 <div className="rc-foot">
-                  <span className={`ats-chip ${ats >= 75 ? 'good' : ats >= 50 ? 'ok' : 'low'}`} title="Quick checks score">Checks {ats}%</span>
+                  <a href={`/ats?resume=${r.id}`} onClick={(e) => { e.preventDefault(); navigate(`/ats?resume=${r.id}`); }} className={`ats-chip ${ats >= 75 ? 'good' : ats >= 50 ? 'ok' : 'low'}`} title="General ATS score (no job description). Click to check against a job.">ATS {ats}</a>
                   <div className="rc-actions">
                     <button type="button" className="icon-btn" aria-label={`Rename ${r.name}`} title="Rename" onClick={() => { setNewName(r.name); setRenaming(r); }}><Icon name="edit" size={16} /></button>
                     <button type="button" className="icon-btn" aria-label={`Duplicate ${r.name}`} title="Duplicate" onClick={async () => { await duplicateResume(r.id); toast('Resume duplicated'); }}><Icon name="copy" size={16} /></button>
