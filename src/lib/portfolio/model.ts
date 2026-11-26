@@ -10,9 +10,13 @@ export const THEMES: { id: PortfolioTheme; name: string; blurb: string }[] = [
   { id: 'developer', name: 'Developer', blurb: 'Dark navy with monospaced touches. Feels like good docs.' },
   { id: 'creative', name: 'Creative', blurb: 'Bold Fraunces name on a colour band. Strong first impression.' },
   { id: 'academic', name: 'Academic', blurb: 'Serif, centred and restrained. Great for students and research.' },
+  { id: 'editorial', name: 'Editorial', blurb: 'Magazine-style serif headlines, ink rules and square corners.' },
+  { id: 'midnight', name: 'Midnight', blurb: 'Deep navy with an accent glow and glassy cards. Striking at night.' },
+  { id: 'brutalist', name: 'Brutalist', blurb: 'Thick borders, hard shadows and mono labels. Loud and confident.' },
+  { id: 'pastel', name: 'Pastel', blurb: 'Soft gradient, rounded cards and friendly type. Warm and approachable.' },
 ];
 
-const THEME_ACCENT: Record<PortfolioTheme, string> = { minimal: '#5B3DF5', developer: '#0F9D9A', creative: '#5B3DF5', academic: '#8C1D40' };
+const THEME_ACCENT: Record<PortfolioTheme, string> = { minimal: '#5B3DF5', developer: '#0F9D9A', creative: '#5B3DF5', academic: '#8C1D40', editorial: '#C2410C', midnight: '#3B82F6', brutalist: '#FF5C39', pastel: '#DB2777' };
 export const themeDefaultAccent = (t: PortfolioTheme) => THEME_ACCENT[t];
 
 export const PORTFOLIO_ACCENTS: { name: string; hex: string }[] = [

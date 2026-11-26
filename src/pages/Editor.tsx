@@ -56,6 +56,19 @@ export function Editor({ id }: { id: string }) {
     );
   }
 
+  const exportFile = async (kind: 'pdf' | 'docx') => {
+    setExportOpen(false);
+    toast(kind === 'pdf' ? 'Preparing PDF…' : 'Preparing Word document…');
+    try {
+      const name = kind === 'pdf'
+        ? await (await import('../lib/export/pdf')).downloadResumePdf(resume)
+        : await (await import('../lib/export/docx')).downloadResumeDocx(resume);
+      toast(`Downloaded ${name}`);
+    } catch (e) {
+      console.error(e);
+      toast('Export failed. Try Print / Save as PDF instead.');
+    }
+  };
   const printPdf = () => {
     const prev = document.title;
     document.title = slug(resume.content.basics.name || resume.name);
@@ -86,7 +99,9 @@ export function Editor({ id }: { id: string }) {
               <Icon name="download" size={16} /><span className="hide-sm">Export</span>
             </button>
             {exportOpen && <ExportMenu onClose={() => setExportOpen(false)} items={[
-              { label: 'PDF (print → Save as PDF)', icon: 'printer', run: printPdf },
+              { label: 'PDF document (.pdf)', icon: 'download', run: () => exportFile('pdf') },
+              { label: 'Word document (.docx)', icon: 'file', run: () => exportFile('docx') },
+              { label: 'Print / Save as PDF (exact look)', icon: 'printer', run: printPdf },
               { label: 'Plain text (.txt)', icon: 'file', run: () => { download(`${slug(resume.name)}.txt`, toPlainText(resume.content), 'text/plain'); setExportOpen(false); } },
               { label: 'JSON Resume (.json)', icon: 'download', run: () => { download(`${slug(resume.name)}.resume.json`, JSON.stringify(toJsonResume(resume), null, 2)); setExportOpen(false); } },
             ]} />}

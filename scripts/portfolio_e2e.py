@@ -139,10 +139,14 @@ with sync_playwright() as p:
     page.locator('[data-section=testimonials]').get_by_label('Role').fill('Engineering Manager, Nimbus Labs')
     page.locator('[data-section=about] .acc-h > button').click()
 
-    for t in ['developer', 'creative', 'academic', 'minimal']:
+    NEW_THEMES = ['editorial', 'midnight', 'brutalist', 'pastel']
+    for t in ['developer', 'creative', 'academic', *NEW_THEMES, 'minimal']:
         page.locator(f'[data-theme-id={t}]').click()
         expect(prev.locator(f'.pf[data-theme={t}]')).to_be_visible()
-    print('switch themes: ok')
+        if t in NEW_THEMES:
+            page.wait_for_timeout(400)
+            prev.screenshot(path=os.path.join(OUT, f'pf-10-desktop-theme-{t}.png'))
+    print('switch themes (8): ok')
     page.wait_for_timeout(600)
     shot(page, 'pf-01-desktop-builder.png')
 
@@ -233,6 +237,30 @@ with sync_playwright() as p:
     v.reload()
     expect(v.get_by_role('heading', name='Priya Sharma', level=1)).to_be_visible(timeout=15000)
 
+    # ---------------- A new theme is accepted server-side and renders publicly ----------------
+    page.goto(BASE + '/portfolio')
+    page.locator('[data-theme-id=midnight]').click()
+    expect(page.get_by_test_id('pf-preview').locator('.pf[data-theme=midnight]')).to_be_visible()
+    page.wait_for_timeout(1500)  # builder autosave is debounced
+    page.goto(BASE + '/portfolio/publish')
+    publish(page)
+    st, body = api('GET', query=f'?slug={SLUG}')
+    assert st == 200 and body['theme'] == 'midnight', (st, body.get('theme'))
+    v.reload()
+    expect(v.locator('.pf[data-theme=midnight]')).to_be_visible(timeout=15000)
+    shot(v, 'pf-11-desktop-public-midnight.png')
+    m.reload()
+    expect(m.locator('.pf[data-theme=midnight]')).to_be_visible(timeout=15000)
+    assert m.evaluate('document.documentElement.scrollWidth') <= 390, 'midnight overflows on mobile'
+    shot(m, 'pf-11b-mobile-public-midnight.png')
+    print('new theme published + rendered (desktop/mobile): ok')
+    page.goto(BASE + '/portfolio')
+    page.locator('[data-theme-id=minimal]').click()
+    expect(page.get_by_test_id('pf-preview').locator('.pf[data-theme=minimal]')).to_be_visible()
+    page.wait_for_timeout(1500)
+    page.goto(BASE + '/portfolio/publish')
+    publish(page)
+
     # ---------------- Persistence ----------------
     page.goto(BASE + '/portfolio')
     page.reload()
@@ -243,7 +271,7 @@ with sync_playwright() as p:
     print('persistence after reload: ok')
 
     page.goto(BASE + '/portfolio/themes')
-    expect(page.locator('[data-theme-card]')).to_have_count(4)
+    expect(page.locator('[data-theme-card]')).to_have_count(8)
     shot(page, 'pf-05-desktop-theme-gallery.png')
 
     # ---------------- Mobile builder ----------------

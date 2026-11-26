@@ -2,11 +2,13 @@ import { useMemo, useState } from 'react';
 import { useStore } from '../lib/store';
 import { ResumeGrid, useImportResume, useNewResume } from '../components/ResumeGrid';
 import { Icon } from '../components/Icon';
+import { useUploadResume } from '../components/UploadResume';
 
 export function ResumesPage() {
   const { resumes } = useStore();
   const nr = useNewResume();
   const imp = useImportResume();
+  const upl = useUploadResume();
   const [q, setQ] = useState('');
   const list = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -17,7 +19,8 @@ export function ResumesPage() {
       <div className="page-head">
         <div><h1>Resumes</h1><p className="muted">Create, duplicate and tailor resumes. Everything autosaves on this device.</p></div>
         <div className="head-actions">
-          <button type="button" className="btn btn-outline" onClick={imp.pick}><Icon name="upload" size={16} /> Import JSON Resume</button>
+          <button type="button" className="btn btn-outline" onClick={imp.pick} title="Import a JSON Resume file"><Icon name="code" size={16} /> <span>JSON</span></button>
+          <button type="button" className="btn btn-outline" onClick={upl.pick} data-testid="upload-resume"><Icon name="upload" size={16} /> Upload PDF / Word</button>
           <button type="button" className="btn btn-primary" onClick={nr.open}><Icon name="plus" size={16} /> New resume</button>
         </div>
       </div>
@@ -31,11 +34,14 @@ export function ResumesPage() {
         <div className="empty card">
           <Icon name="file" size={32} />
           <h3>No resumes yet</h3>
-          <p className="muted">Start blank or pick a sample profile.</p>
-          <button type="button" className="btn btn-primary" onClick={nr.open}><Icon name="plus" size={16} /> Create resume</button>
+          <p className="muted">Start blank, pick a sample profile, or upload your current resume (PDF, Word or text).</p>
+          <div className="empty-actions">
+            <button type="button" className="btn btn-primary" onClick={nr.open}><Icon name="plus" size={16} /> Create resume</button>
+            <button type="button" className="btn btn-outline" onClick={upl.pick}><Icon name="upload" size={16} /> Upload PDF / Word</button>
+          </div>
         </div>
       ) : list.length === 0 ? <p className="muted">No resumes match “{q}”.</p> : <ResumeGrid resumes={list} />}
-      {nr.el}{imp.input}
+      {nr.el}{imp.input}{upl.input}{upl.el}
     </div>
   );
 }

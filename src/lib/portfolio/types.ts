@@ -1,6 +1,6 @@
 import type { Resume } from '../types';
 
-export type PortfolioTheme = 'minimal' | 'developer' | 'creative' | 'academic';
+export type PortfolioTheme = 'minimal' | 'developer' | 'creative' | 'academic' | 'editorial' | 'midnight' | 'brutalist' | 'pastel';
 export type Visibility = 'public' | 'private' | 'password';
 export type SectionKey = 'about' | 'projects' | 'skills' | 'experience' | 'education' | 'certifications' | 'gallery' | 'testimonials' | 'contact';
 

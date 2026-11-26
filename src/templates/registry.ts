@@ -14,8 +14,8 @@ export interface GenericConfig {
   layout: 'single' | 'sidebar' | 'gutter';
   side?: 'left' | 'right';
   sideStyle?: 'dark' | 'tint' | 'line';
-  header: 'left' | 'center' | 'split' | 'band' | 'initials';
-  head: 'rule' | 'caps' | 'bar' | 'underline' | 'pill' | 'plain' | 'mono' | 'box' | 'double';
+  header: 'left' | 'center' | 'split' | 'band' | 'initials' | 'stripe';
+  head: 'rule' | 'caps' | 'bar' | 'underline' | 'pill' | 'plain' | 'mono' | 'box' | 'double' | 'leader' | 'slab';
   font: 'sans' | 'serif' | 'classic' | 'mono';
   density: 'compact' | 'normal' | 'airy';
   skills: 'inline' | 'chips' | 'bars' | 'list';
@@ -74,6 +74,18 @@ export const TEMPLATES: TemplateDef[] = [
   { id: 'campus', name: 'Campus Placement', category: 'Student', ats: true, blurb: 'One-page format for placement cells',
     config: { layout: 'single', header: 'split', head: 'box', font: 'sans', density: 'compact', skills: 'inline', order: STUDENT_ORDER,
       labels: { work: 'Internships', summary: 'Career Objective' } } },
+  // Added in 0.5.0 (ATS-friendly)
+  { id: 'consultant', name: 'Consultant', category: 'Executive', ats: true, blurb: 'Split header, serif headings with leader lines',
+    config: { layout: 'single', header: 'split', head: 'leader', font: 'serif', density: 'normal', skills: 'list' } },
+  { id: 'analyst', name: 'Analyst', category: 'Single column', ats: true, blurb: 'Accent top stripe and tinted section slabs',
+    config: { layout: 'single', header: 'stripe', head: 'slab', font: 'sans', density: 'compact', skills: 'inline' } },
+  { id: 'engineer', name: 'Engineer', category: 'Tech', ats: true, blurb: 'Skills up top, underlined headings, dense',
+    config: { layout: 'single', header: 'left', head: 'underline', font: 'sans', density: 'compact', skills: 'chips', order: TECH_ORDER } },
+  { id: 'graduate', name: 'Graduate', category: 'Student', ats: true, blurb: 'Centred, airy, education first for freshers',
+    config: { layout: 'single', header: 'center', head: 'pill', font: 'sans', density: 'airy', skills: 'chips', order: STUDENT_ORDER,
+      labels: { work: 'Internships & Experience', summary: 'Objective' } } },
+  { id: 'banker', name: 'Banker', category: 'Classic', ats: true, blurb: 'Conservative serif, centred, compact',
+    config: { layout: 'single', header: 'center', head: 'leader', font: 'classic', density: 'compact', skills: 'list' } },
 
   // Design-focused
   { id: 'sidebar-right', name: 'Sidebar Right', category: 'Two column', ats: false, blurb: 'Main content left, tinted details right',
@@ -99,6 +111,15 @@ export const TEMPLATES: TemplateDef[] = [
   { id: 'scholar', name: 'Scholar', category: 'Academic', ats: false, blurb: 'Serif CV with gutter headings',
     config: { layout: 'gutter', header: 'center', head: 'plain', font: 'classic', density: 'normal', skills: 'list', order: ACADEMIC_ORDER,
       labels: { projects: 'Research', awards: 'Honours' } } },
+  // Added in 0.5.0 (design-focused)
+  { id: 'slate', name: 'Slate', category: 'Executive', ats: false, blurb: 'Dark slate sidebar with serif leader headings',
+    config: { layout: 'sidebar', side: 'left', sideStyle: 'dark', header: 'left', head: 'leader', font: 'serif', density: 'normal', skills: 'list' } },
+  { id: 'aurora', name: 'Aurora', category: 'Creative', ats: false, blurb: 'Colour band header with a tinted right column',
+    config: { layout: 'sidebar', side: 'right', sideStyle: 'tint', header: 'band', head: 'pill', font: 'sans', density: 'normal', skills: 'chips' } },
+  { id: 'studio', name: 'Studio', category: 'Creative', ats: false, blurb: 'Gutter headings on slabs, serif, lots of air',
+    config: { layout: 'gutter', header: 'stripe', head: 'slab', font: 'serif', density: 'airy', skills: 'chips' } },
+  { id: 'pulse', name: 'Pulse', category: 'Creative', ats: false, blurb: 'Monogram header, timeline and skill bars',
+    config: { layout: 'single', header: 'initials', head: 'bar', font: 'sans', density: 'normal', skills: 'bars', timeline: true } },
 ];
 
 export const TEMPLATE_IDS = TEMPLATES.map((t) => t.id);

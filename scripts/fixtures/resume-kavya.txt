@@ -1,0 +1,24 @@
+Kavya Raman
+Data Analyst
+Chennai, Tamil Nadu | kavya.raman@example.com | +91 98765 43210 | linkedin.com/in/kavya-raman-demo | github.com/kavyar-demo
+
+SUMMARY
+Data analyst with 3 years of experience turning messy operational data into dashboards and decisions. Comfortable with SQL, Python and Power BI, and with presenting findings to non-technical stakeholders.
+
+EXPERIENCE
+Data Analyst, Quickbasket Retail Pvt Ltd — Bengaluru    Jun 2023 - Present
+- Built a Power BI sales dashboard used by 40 store managers, cutting weekly reporting time by 6 hours.
+- Wrote SQL and Python (Pandas) pipelines that clean 2M+ order rows a day and feed the forecasting model.
+- Ran A/B tests on checkout changes with the product team; the winning variant lifted conversion by 3.2%.
+
+Junior Analyst Intern, Northstar Logistics — Chennai    Jan 2022 - May 2023
+- Automated a daily Excel report with Python, saving the operations team 5 hours a week.
+- Analysed delivery delays across 12 hubs and presented findings to regional leads.
+
+EDUCATION
+B.Tech in Information Technology, Anna University, Chennai  2018-2022  CGPA: 8.4/10
+
+SKILLS
+Languages: SQL, Python, R programming
+Tools: Power BI, Tableau, Excel, Jupyter, Git
+Methods: Data visualization, Statistics, A/B testing, Forecasting

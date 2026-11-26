@@ -16,6 +16,10 @@
 .g-head-band .g-name { color: #fff; font-size: 34px; }
 .g-head-band .g-label { color: rgba(255,255,255,.85); }
 .g-head-band .g-contact { color: rgba(255,255,255,.85); }
+.g-hd-stripe .g-wrap { border-top: 10px solid var(--theme); }
+.g-head-stripe { padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.g-head-stripe .g-name { font-size: 32px; color: var(--ink); }
+.g-head-stripe .g-label { color: var(--theme); }
 .g-head-initials { display: flex; align-items: center; gap: 18px; }
 .g-mono-ini { width: 62px; height: 62px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   font-family: var(--r-head, inherit); font-weight: 700; font-size: 23px; background: var(--theme); color: #fff; }
@@ -34,6 +38,10 @@
 .g-h-box .r-h { background: var(--theme); color: #fff; padding: 4px 10px; font-size: 12.5px; letter-spacing: .1em; text-transform: uppercase; }
 .g-h-mono .r-h { font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace; font-size: 13px; }
 .g-h-mono .r-h span::before { content: '// '; opacity: .55; }
+.g-h-leader .r-h { display: flex; align-items: center; gap: 10px; text-transform: uppercase; letter-spacing: .12em; font-size: 12.5px; }
+.g-h-leader .r-h::after { content: ''; flex: 1; height: 1px; background: color-mix(in srgb, var(--theme) 40%, #fff); }
+.g-h-slab .r-h { background: var(--theme-soft); color: var(--theme); padding: 4px 10px; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; border-radius: 3px; }
+.g-l-gutter.g-h-slab .r-h { align-self: start; }
 .g-h-plain .r-h { font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: var(--theme); }
 
 /* fonts */

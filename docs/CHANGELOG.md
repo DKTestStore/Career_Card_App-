@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.0 — 2026-11-26
+
+- **Upload a résumé** (PDF, Word .docx or .txt, up to 8 MB) from the Resumes page or the ATS page. The file is parsed on the device (pdf.js / fflate + DOMParser, both lazy-loaded) into contact details, summary, experience, education, projects, skills, certifications and achievements; a **review dialog** shows what was found and lets you fix it before saving as a new résumé (or *Save & check ATS*).
+- **Download as PDF** — a real text-selectable A4 PDF built on the device with jsPDF, following the template's colours, header, heading style, section order and sidebar.
+- **Download as Word (.docx)** — generated on the device (Office Open XML + fflate) with proper Word styles, real bullets and right-aligned dates; single column for ATS.
+- Export menu: *PDF document*, *Word document*, *Print / Save as PDF (exact look)*, *Plain text*, *JSON Resume*. Files are named `First_Last_Resume.pdf/.docx`.
+- **ATS match report** (inspired by Jobalytics-style scanners, rule-based and on-device): match rate %, job-title match, Hard / Soft / Other keyword tabs, priority per keyword, count in the job post vs résumé, where it appears, one-click *Add to skills* and *Add all missing hard skills*, tips for wording differences and skills that are only listed but not used in Experience. Check an uploaded file without saving it first.
+- **9 new résumé templates** (36 total: 19 ATS-friendly, 17 design-focused): ATS — Consultant, Analyst, Engineer, Graduate, Banker; design — Slate, Aurora, Studio, Pulse. New header style *stripe* and heading styles *leader* and *slab*.
+- **4 new portfolio themes** (8 total): Editorial, Midnight, Brutalist, Pastel — accepted by the publish API and rendered on public pages.
+- Service worker cache v5. New lazy dependencies: `pdfjs-dist`, `jspdf`, `fflate`. Main bundle +1.5 kB gzip.
+- Tests: `scripts/upload_export_ats_e2e.py` (desktop + mobile: upload PDF and DOCX, review, download PDF/DOCX and validate them with pdftotext / python-docx, round-trip re-import, new templates, ATS upload + match + add keywords) and `scripts/make_resume_fixtures.py`; `portfolio_e2e.py` covers all 8 themes and publishes a new theme.
+
 ## 0.4.0 — 2026-11-26
 
 - **My Portfolio** (new nav item on desktop and mobile, `/portfolio`): builder with About/hero, Projects, Skills, Experience, Education, Certifications, Gallery, Testimonials and Contact sections (hide / reorder), live scaled preview, and a Design & publish panel.

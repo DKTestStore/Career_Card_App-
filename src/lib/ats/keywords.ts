@@ -51,6 +51,8 @@ const RAW: Record<KwKind, string[]> = {
   soft: [
     'Communication|communication skills', 'Leadership', 'Mentoring|mentorship', 'Collaboration|cross-functional', 'Stakeholder management|stakeholders', 'Problem solving|problem-solving',
     'Ownership', 'Teamwork', 'Presentation|presentations', 'Negotiation', 'Time management', 'Attention to detail|detail-oriented', 'Critical thinking', 'Adaptability', 'Storytelling',
+    'Interpersonal skills|interpersonal', 'Written communication|written and verbal', 'Decision making|decision-making', 'Self-motivated|self-starter|self motivated', 'Initiative', 'Creativity|creative thinking',
+    'Organization|organizational skills|organisational skills', 'Multitasking|multi-tasking', 'Customer focus|customer-centric|customer obsession', 'Accountability', 'Curiosity|curious', 'Empathy', 'Analytical skills|analytical thinking', 'Prioritization|prioritisation', 'Conflict resolution',
   ],
   cert: [
     'AWS Certified|aws certification', 'PMP', 'CSM|certified scrum master', 'CFA', 'CPA', 'Chartered Accountant', 'Google Data Analytics Certificate', 'CCNA', 'CISSP', 'Six Sigma', 'ITIL', 'CKA',
@@ -123,23 +125,137 @@ export function extractKeywords(jd: string): JdKeyword[] {
   return [...found, ...picked.map((t) => ({ term: t, kind: 'term' as const, weight: 1 }))].slice(0, 40);
 }
 
-export interface KeywordResult { matched: string[]; missing: JdKeyword[]; all: JdKeyword[]; score01: number }
+export type KwGroup = 'hard' | 'soft' | 'other';
+export type Priority = 'high' | 'medium' | 'low';
+export type Where = 'summary' | 'skills' | 'experience' | 'projects' | 'education';
+export interface KwHit {
+  term: string; kind: JdKeyword['kind']; group: KwGroup; priority: Priority; matched: boolean;
+  jdCount: number; resumeCount: number; where: Where[];
+  /** Matched only through a different wording (e.g. JD "Machine learning", resume "ML"). */
+  wording?: { jd: string; resume: string };
+}
+export interface TitleMatch { jd: string; found: boolean; closest: string }
+export interface KeywordResult { matched: string[]; missing: JdKeyword[]; all: JdKeyword[]; score01: number; hits: KwHit[]; title: TitleMatch | null }
 
-export function matchKeywords(resume: Pick<Resume, 'content'>, jd: string): KeywordResult {
+export const groupOf = (k: JdKeyword['kind']): KwGroup => (k === 'tool' || k === 'skill' ? 'hard' : k === 'soft' ? 'soft' : 'other');
+const PRIORITY_WEIGHT: Record<Priority, number> = { high: 3, medium: 2, low: 1 };
+
+function countRx(rx: RegExp, text: string): number {
+  const g = new RegExp(rx.source, rx.flags.includes('g') ? rx.flags : rx.flags + 'g');
+  return text.match(g)?.length ?? 0;
+}
+function formsIn(e: Entry, lower: string, raw: string): { form: string; n: number }[] {
+  if (e.cs) return [{ form: e.name, n: countRx(e.cs, raw) }].filter((x) => x.n);
+  return [e.name, ...(e.aliases ?? [])].map((f) => ({ form: f, n: countRx(termRx(f), lower) })).filter((x) => x.n);
+}
+
+/** Which JD lines are "must have" vs "nice to have"? */
+function jdZones(jd: string): { required: string; optional: string } {
+  let mode: 'neutral' | 'required' | 'optional' = 'neutral';
+  const req: string[] = [], opt: string[] = [];
+  for (const line of jd.split(/\n+/)) {
+    const t = line.trim();
+    if (!t) continue;
+    const short = t.split(/\s+/).length <= 8;
+    if (short && /nice to have|good to have|preferred|bonus|desirable|optional|plus points?|extra credit/i.test(t)) { mode = 'optional'; continue; }
+    if (short && /requirement|qualification|must|you have|you bring|need|looking for|required|skills|experience|about you|who you are/i.test(t)) { mode = 'required'; continue; }
+    const lineOpt = /\b(preferred|nice to have|good to have|bonus|is a plus|a plus|desirable)\b/i.test(t);
+    const lineReq = /\b(must|required|requirement|minimum|at least|strong|proficien|expert|hands-on)\b/i.test(t);
+    if (lineOpt || (mode === 'optional' && !lineReq)) opt.push(t); else if (lineReq || mode === 'required') req.push(t);
+  }
+  return { required: req.join('\n').toLowerCase(), optional: opt.join('\n').toLowerCase() };
+}
+
+const TITLE_RX = /\b(engineer|developer|manager|analyst|designer|scientist|consultant|architect|specialist|lead|intern|associate|administrator|coordinator|executive|officer|strategist|marketer|accountant|writer|researcher|programmer|technician|director|sde)\b/i;
+const SENIORITY = new Set(['senior', 'sr', 'junior', 'jr', 'staff', 'principal', 'lead', 'head', 'i', 'ii', 'iii', 'iv', 'associate', 'entry', 'level', 'graduate', 'trainee', 'mid', 'the', 'a', 'an', 'of', 'and', 'for', 'in', '-', '–', '/']);
+
+/** Guess the job title from the user's title field or the JD's first lines. */
+export function guessJobTitle(jd: string, given?: string): string {
+  const pick = (s: string) => s.replace(/^(job\s*title|title|role|position)\s*[:\-–]\s*/i, '').split(/\s+(?:at|@|-|–|—|\|)\s+|[,(]/)[0].trim();
+  if (given && TITLE_RX.test(given)) return pick(given);
+  for (const line of jd.split(/\n/).slice(0, 6)) {
+    const t = line.trim();
+    if (t && t.split(/\s+/).length <= 10 && TITLE_RX.test(t)) return pick(t);
+    const m = /(?:hiring|looking for|seeking|join us as|role of|position of)\s+(?:an?\s+)?([A-Z][\w/+.-]*(?:\s+[A-Z][\w/+.-]*){0,4})/.exec(t);
+    if (m && TITLE_RX.test(m[1])) return pick(m[1]);
+  }
+  return '';
+}
+
+function titleMatch(resume: Pick<Resume, 'content'>, jdTitle: string): TitleMatch | null {
+  if (!jdTitle) return null;
+  const core = tokens(jdTitle).filter((w) => !SENIORITY.has(w)).map(stem);
+  if (!core.length) return null;
+  const titles = [resume.content.basics.label, ...resume.content.work.map((w) => w.position)].filter(Boolean);
+  let best = { t: '', score: 0 };
+  for (const t of titles) {
+    const st = new Set(tokens(t).map(stem));
+    const score = core.filter((w) => st.has(w)).length / core.length;
+    if (score > best.score) best = { t, score };
+  }
+  return { jd: jdTitle, found: best.score >= 0.999, closest: best.t };
+}
+
+export function matchKeywords(resume: Pick<Resume, 'content'>, jd: string, jdTitle?: string): KeywordResult {
   const all = extractKeywords(jd);
-  const raw = toPlainText(resume.content);
+  const c = resume.content;
+  const raw = toPlainText(c);
   const lower = raw.toLowerCase();
-  const stemmed = ' ' + tokens(raw).map(stem).join(' ') + ' ';
+  const jdLower = jd.toLowerCase();
+  const zones = jdZones(jd);
+  const parts: Record<Where, string> = {
+    summary: `${c.basics.label}\n${c.basics.summary}`,
+    skills: c.skills.map((s) => `${s.name}: ${s.keywords.join(', ')}`).join('\n'),
+    experience: c.work.map((w) => [w.position, w.name, w.summary, ...w.highlights].join('\n')).join('\n'),
+    projects: c.projects.map((p) => [p.name, p.description, ...p.highlights, p.keywords.join(', ')].join('\n')).join('\n'),
+    education: [...c.education.map((e) => [e.studyType, e.area, e.institution, e.courses.join(', ')].join(' ')), ...c.certificates.map((x) => `${x.name} ${x.issuer}`)].join('\n'),
+  };
+  const stemmedOf = (t: string) => ' ' + tokens(t).map(stem).join(' ') + ' ';
+  const stemmed = stemmedOf(raw);
   const matched: string[] = [];
   const missing: JdKeyword[] = [];
+  const hits: KwHit[] = [];
   let got = 0, total = 0;
   for (const k of all) {
-    total += k.weight;
     const e = DICT.find((d) => d.name === k.term);
-    const ok = e ? entryIn(e, lower, raw) : stemmed.includes(' ' + tokens(k.term).map(stem).join(' ') + ' ');
-    if (ok) { matched.push(k.term); got += k.weight; } else missing.push(k);
+    let jdCount: number, resumeCount: number, where: Where[], wording: KwHit['wording'];
+    let inReq: boolean, inOpt: boolean;
+    if (e) {
+      const jf = formsIn(e, jdLower, jd), rf = formsIn(e, lower, raw);
+      jdCount = jf.reduce((a, x) => a + x.n, 0); resumeCount = rf.reduce((a, x) => a + x.n, 0);
+      where = (Object.keys(parts) as Where[]).filter((w) => entryIn(e, parts[w].toLowerCase(), parts[w]));
+      if (rf.length && jf.length && !rf.some((r) => jf.some((j) => j.form.toLowerCase() === r.form.toLowerCase()))) {
+        wording = { jd: jf.sort((a, b) => b.n - a.n)[0].form, resume: rf.sort((a, b) => b.n - a.n)[0].form };
+      }
+      inReq = entryIn(e, zones.required, zones.required); inOpt = entryIn(e, zones.optional, zones.optional);
+    } else {
+      const needle = stemmedOf(k.term);
+      const cnt = (hay: string) => hay.split(needle.trim()).length - 1;
+      jdCount = Math.max(1, cnt(stemmedOf(jd))); resumeCount = stemmed.includes(needle) ? cnt(stemmed) : 0;
+      where = (Object.keys(parts) as Where[]).filter((w) => stemmedOf(parts[w]).includes(needle));
+      inReq = stemmedOf(zones.required).includes(needle); inOpt = stemmedOf(zones.optional).includes(needle);
+    }
+    const group = groupOf(k.kind);
+    const priority: Priority = group === 'hard' || k.kind === 'cert'
+      ? (jdCount >= 2 || inReq ? 'high' : inOpt ? 'low' : 'medium')
+      : group === 'soft' ? (jdCount >= 2 || inReq ? 'medium' : 'low')
+        : jdCount >= 3 ? 'medium' : 'low';
+    const ok = resumeCount > 0;
+    const w = PRIORITY_WEIGHT[priority];
+    total += w;
+    if (ok) { matched.push(k.term); got += w; } else missing.push(k);
+    hits.push({ term: k.term, kind: k.kind, group, priority, matched: ok, jdCount, resumeCount, where, wording });
   }
-  return { matched, missing, all, score01: total ? got / total : 0 };
+  const order: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
+  hits.sort((a, b) => order[a.priority] - order[b.priority] || b.jdCount - a.jdCount);
+  missing.sort((a, b) => order[hits.find((h) => h.term === a.term)!.priority] - order[hits.find((h) => h.term === b.term)!.priority]);
+  return { matched, missing, all, score01: total ? got / total : 0, hits, title: titleMatch(resume, guessJobTitle(jd, jdTitle)) };
+}
+
+/** Which skills group should a keyword go into? Returns the group name to use/create. */
+export function skillsGroupFor(k: Pick<KwHit, 'kind'>, existing: string[]): string {
+  const want = k.kind === 'soft' ? /soft|interpersonal|personal/i : k.kind === 'tool' ? /tool|tech|stack|language|framework|platform|software/i : /skill|core|competenc|expertise/i;
+  return existing.find((n) => want.test(n)) ?? (k.kind === 'soft' ? 'Soft skills' : k.kind === 'tool' ? 'Tools & technologies' : 'Core skills');
 }
 
 export type Target = 'skills' | 'work' | 'summary' | 'certificates' | 'education' | 'projects';

@@ -24,7 +24,7 @@ Privacy defaults:
 ## Templates and colours
 
 - `src/templates/registry.ts` lists every template: `{ id, name, category, ats, blurb, config? }`. `ats: true` means ATS-friendly (single reading order, standard headings, no graphics); `false` means design-focused. The ATS score's formatting check reads this tag.
-- Executive, Elegant and Modern have bespoke renderers. All other templates are a `config` for the shared `Generic` renderer (`src/templates/Generic.tsx` + `generic.css`): layout (single, sidebar left/right with dark/tint/line styles, gutter), header (left, center, split, band, initials), heading style (rule, caps, bar, underline, pill, plain, mono, box, double), font, density, skills style (inline, chips, bars, list), timeline, monochrome, section order and labels. Adding a template is one registry entry.
+- Executive, Elegant and Modern have bespoke renderers. All other templates are a `config` for the shared `Generic` renderer (`src/templates/Generic.tsx` + `generic.css`): layout (single, sidebar left/right with dark/tint/line styles, gutter), header (left, center, split, band, stripe, initials), heading style (rule, caps, bar, underline, pill, plain, mono, box, double, leader, slab), font, density, skills style (inline, chips, bars, list), timeline, monochrome, section order and labels. Adding a template is one registry entry.
 - Colours (`src/lib/themes.ts`): each preset is one base colour. `deriveAccent()` computes `--theme` (darkened until 4.5:1 contrast on white), `--sidebar` (dark panel colour, 8:1 with white text) and `--theme-soft` (10% tint). A custom colour (`accent: 'custom'` + `customColor`) uses the same function.
 - Fonts: templates set `--r-head` / `--r-body`; a user font choice overrides them inline.
 - Migration: on load and on import, `migrateResume()` maps unknown template ids to Executive and unknown colours to Violet, so older data always renders. IndexedDB upgrades from version 1 to 2 by adding the `atsReports` store; existing data is untouched.
@@ -34,6 +34,19 @@ Privacy defaults:
 - `src/lib/ats/score.ts` (in the main bundle, used by the editor panel and resume cards): rule-based scoring, suggestions and bullet rewrites. Pure functions, no network.
 - `src/lib/ats/keywords.ts` + `samples.ts` (lazy-loaded with the `/ats` page via `React.lazy`): skills dictionary with aliases, stopwords, n-gram extraction, keyword matching, and "where to add" hints.
 - Fix links navigate to `/resumes/:id?section=<key>`; the editor opens and scrolls to that section (switching to the Edit tab on mobile).
+- Match report (0.5.0): `matchKeywords(resume, jd, jdTitle)` returns `hits[]` with `{ term, kind, group: hard|soft|other, priority: high|medium|low, matched, jdCount, resumeCount, where[], wording? }` plus a job-title match. Priority is rule-based: a hard skill is *high* when the JD repeats it or it sits in the must-have zone (lines after "Requirements / Must have / Qualifications"), *low* when it only appears under "Nice to have / Bonus / Preferred". The match rate is priority-weighted (3/2/1). `skillsGroupFor()` picks the skills group used by "Add to skills". The source can be a saved résumé or an uploaded file held in memory as a temporary résumé (`id: 'uploaded'`); editing actions require saving it first.
+
+## Résumé upload and PDF / Word download (0.5.0)
+
+All on the device; no file leaves the browser. Every module below is loaded with dynamic `import()` only when used, so the main bundle grew by ~1.5 kB gzip.
+
+- `src/lib/import/extract.ts` — file → `Line[]` (`{ text, bullet?, bold?, size?, gapBefore? }`). PDF: `pdfjs-dist` legacy build + its worker (max 10 pages, 30 s timeout, runs grouped by baseline, a gutter search to read two-column/sidebar PDFs column by column, bold/size from fonts). DOCX: `fflate.unzipSync` reads only `word/document.xml`, `DOMParser` walks paragraphs and tables; list numbering / *List* styles become bullets, *Heading/Title* styles and bold runs are marked. TXT as-is. Rejects >8 MB, unsupported types and image-only PDFs.
+- `src/lib/import/parse.ts` — `Line[]` → `ResumeContent` + a report (sections found, ignored headings, warnings). Heading dictionary (with ALL-CAPS / spaced-letter variants), contact regexes (email, phone, URLs → LinkedIn/GitHub profiles, "City, Region"), name from the largest font / first name-like line, date-range parser (`Jan 2023 – Present`, `06/2021`, `2019 - 2023`…), and per-section parsers for work, education (degree / institution / CGPA), projects (tech lists), skills (`Group: a, b`, label lines), certifications and awards. Unknown sections are reported, not dropped silently.
+- `src/components/UploadResume.tsx` (small, main bundle) + `UploadReview.tsx` (lazy review dialog) — used by the Resumes page and the ATS page.
+- `src/lib/export/model.ts` — résumé + template config → a layout-neutral `DocModel` (contacts, ordered sections with entries/bullets/skill groups, and a `DocStyle`: accent, font family, alignment, header/heading style, band/stripe/split, compact/airy, sidebar).
+- `src/lib/export/pdf.ts` — `jspdf` (A4, pt) draws real text with the base-14 fonts (text stays selectable and ATS-readable): header variants, sidebar column (repainted on every page), heading styles, right-aligned dates, text bullets, page breaks with margins, PDF metadata. Text is mapped to WinAnsi.
+- `src/lib/export/docx.ts` — hand-written OOXML (`[Content_Types].xml`, `document.xml`, `styles.xml` with Title/Subtitle/Heading1/Heading2/List Bullet, `numbering.xml`, core/app props) zipped with `fflate.zipSync`. Single column, right tab stop for dates, template colour and fonts.
+- Lazy chunk sizes (gzip): pdf.js ~167 kB (+ worker file), jsPDF ~123 kB, fflate ~9 kB, parser/exporters a few kB each.
 
 ## Auth module
 
@@ -56,7 +69,7 @@ When Google sign-in is enabled:
 
 Until that work lands, Hire Ready has no accounts and no server-side copy of anyone’s data.
 
-## Portfolio (0.4.0)
+## Portfolio (0.4.0; 8 themes since 0.5.0)
 
 ### Client
 - `src/lib/portfolio/` — types, model (empty portfolio, import from résumé, slug rules, payload/size, defensive `normalizeView`), API client, image compression (`compressImage`: canvas resize to ≤1600 px, WebP q0.8 with JPEG fallback, stored as data URLs), QR (`qrcode-generator`, dynamically imported), `usePublish` hook.

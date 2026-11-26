@@ -66,6 +66,18 @@
 .tt-academic { background: #FFFCF7; border-color: #E8DFD2; }
 .tt-academic .tt-title { left: 27%; background: #8C1D40; } .tt-academic .tt-line { left: 20%; background: #E8DFD2; }
 .tt-academic .tt-card { background: #F6EBE3; border-color: #E8DFD2; }
+.tt-editorial { background: #FAF8F3; border-color: #141414; }
+.tt-editorial .tt-bar { background: #FAF8F3; border-bottom: 2px solid #141414; } .tt-editorial .tt-title { height: 10px; width: 62%; background: #141414; } .tt-editorial .tt-line { top: 28px; background: #C9C3B6; }
+.tt-editorial .tt-card { background: transparent; border: 0; border-top: 2px solid #141414; border-radius: 0; }
+.tt-midnight { background: radial-gradient(80px 40px at 90% 0, #3B5BDB, transparent), #0A0F1F; border-color: #0A0F1F; }
+.tt-midnight .tt-bar { background: rgba(255,255,255,.05); } .tt-midnight .tt-title { background: linear-gradient(90deg, #fff, #9DB4FF); } .tt-midnight .tt-line { background: #3B5BDB; }
+.tt-midnight .tt-card { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.12); }
+.tt-brutalist { background: #F4EFE6; border: 2px solid #0B0B0B; }
+.tt-brutalist .tt-bar { background: #FF5C39; border-bottom: 2px solid #0B0B0B; } .tt-brutalist .tt-title { background: #0B0B0B; border-radius: 0; } .tt-brutalist .tt-line { background: #0B0B0B; }
+.tt-brutalist .tt-card { background: #fff; border: 2px solid #0B0B0B; border-radius: 0; box-shadow: 3px 3px 0 #0B0B0B; }
+.tt-pastel { background: linear-gradient(180deg, #FFE4F0, #EDE4FF); border-color: #F0E3F0; }
+.tt-pastel .tt-bar { background: transparent; } .tt-pastel .tt-title { background: #2A2238; border-radius: 99px; } .tt-pastel .tt-line { background: #EC4899; border-radius: 99px; }
+.tt-pastel .tt-card { background: #fff; border-color: transparent; border-radius: 8px; box-shadow: 0 3px 8px rgba(120,80,160,.15); }
 .swatch-custom { position: relative; overflow: hidden; background: conic-gradient(#FF6B5C, #FFC24B, #0F9D9A, #5B3DF5, #FF6B5C); }
 .swatch-custom input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
 .import-box, .publish-box { display: flex; flex-direction: column; gap: 10px; }

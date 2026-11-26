@@ -13,7 +13,7 @@ const api = await import('../api/portfolio.js');
 const pPage = await import('../api/p-page.js');
 const dist = path.join(root, 'dist');
 const PORT = Number(process.env.PORT || 4174);
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json', '.json': 'application/json' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json', '.json': 'application/json' };
 
 async function toRequest(req) {
   const chunks = [];

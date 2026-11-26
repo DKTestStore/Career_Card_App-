@@ -134,6 +134,74 @@
 .pf-academic .pf-btn { border-radius: 6px; }
 
 /* --- Narrow (phones, builder preview on mobile) --- */
+/* --- Editorial (0.5.0): magazine serif, ink rules, square corners --- */
+.pf-editorial { --pf-bg: #FAF8F3; --pf-ink: #141414; --pf-muted: #5E5A52; --pf-line: rgba(20,20,20,.14); --pf-card: #FAF8F3; --pf-chip: transparent; --pf-chip-ink: #141414; --pf-head: #141414; }
+.pf-editorial .pf-nav { border-bottom: 2px solid #141414; }
+.pf-editorial .pf-hero { border-bottom: 1px solid var(--pf-line); padding-bottom: 36px; }
+.pf-editorial .pf-hero h1 { font-size: clamp(42px, 7.5cqi, 84px); font-weight: 500; letter-spacing: -.045em; line-height: .98; }
+.pf-editorial .pf-headline { font-family: var(--serif); font-style: italic; font-size: 21px; color: var(--pf-ink); }
+.pf-editorial .pf-eyebrow { color: var(--pf-ink); border-left: 3px solid var(--pf-accent); padding-left: 8px; }
+.pf-editorial .pf-hero-photo .pf-face { border-radius: 4px !important; filter: grayscale(1) contrast(1.05); box-shadow: 10px 10px 0 var(--pf-accent); }
+.pf-editorial .pf-sec h2 { font-family: var(--serif); font-size: clamp(24px, 3.4cqi, 32px); font-weight: 500; letter-spacing: -.01em; text-transform: none; border-top: 3px solid #141414; padding-top: 10px; }
+.pf-editorial .pf-card, .pf-editorial .pf-certs li { border-radius: 0; box-shadow: none; border: 0; border-top: 1px solid #141414; background: transparent; }
+.pf-editorial .pf-card-body { padding: 12px 0 8px; }
+.pf-editorial .pf-cover, .pf-editorial .pf-gallery img, .pf-editorial .pf-mini-gal img { border-radius: 0; }
+.pf-editorial .pf-btn { border-radius: 0; }
+.pf-editorial .pf-btn-outline { background: transparent; border-color: #141414; }
+.pf-editorial .pf-skills li { border: 1px solid #141414; border-radius: 0; }
+.pf-editorial .pf-chips li { border-radius: 0; }
+.pf-editorial .pf-quotes blockquote { background: transparent; border: 0; border-left: 3px solid var(--pf-accent); border-radius: 0; }
+.pf-editorial .pf-quotes p { font-size: 19px; font-style: italic; }
+
+/* --- Midnight (0.5.0): deep navy with an accent glow and glass cards --- */
+.pf-midnight { --pf-bg: #0A0F1F; --pf-ink: #EEF2FF; --pf-muted: rgba(238,242,255,.62); --pf-line: rgba(255,255,255,.1); --pf-card: rgba(255,255,255,.04); --pf-chip: rgba(255,255,255,.07); --pf-chip-ink: #DCE3FF;
+  --accent-ink: color-mix(in srgb, var(--pf-accent) 60%, #fff); --accent-soft: color-mix(in srgb, var(--pf-accent) 20%, #0A0F1F);
+  background: radial-gradient(1200px 520px at 85% -10%, color-mix(in srgb, var(--pf-accent) 38%, transparent), transparent 60%), radial-gradient(800px 420px at -10% 30%, color-mix(in srgb, var(--pf-accent) 16%, transparent), transparent 60%), #0A0F1F; }
+.pf-midnight .pf-nav { background: rgba(10,15,31,.78); }
+.pf-midnight .pf-hero h1 { font-family: var(--font); font-weight: 780; letter-spacing: -.035em; background: linear-gradient(90deg, #fff, var(--accent-ink)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.pf-midnight .pf-card, .pf-midnight .pf-certs li { backdrop-filter: blur(6px); box-shadow: 0 0 0 1px rgba(255,255,255,.06) inset, 0 20px 40px rgba(0,0,0,.25); }
+.pf-midnight .pf-hero-photo .pf-face { box-shadow: 0 0 0 4px rgba(255,255,255,.08), 0 0 60px color-mix(in srgb, var(--pf-accent) 55%, transparent); }
+.pf-midnight .pf-tag-feat { background: var(--pf-accent); color: #fff; }
+.pf-midnight .pf-qr-box { border-color: transparent; }
+.pf-midnight .pf-btn-outline { background: rgba(255,255,255,.04); }
+
+/* --- Brutalist (0.5.0): thick borders, hard shadows, mono labels --- */
+.pf-brutalist { --pf-bg: #F4EFE6; --pf-ink: #0B0B0B; --pf-muted: #3D3A35; --pf-line: #0B0B0B; --pf-card: #fff; --pf-chip: #fff; --pf-chip-ink: #0B0B0B; --pf-head: #0B0B0B; --pf-title-font: var(--font); }
+.pf-brutalist .pf-nav { border-bottom: 3px solid #0B0B0B; background: var(--pf-accent); }
+.pf-brutalist .pf-nav, .pf-brutalist .pf-nav a { color: #fff; }
+.pf-brutalist .pf-nav .pf-btn-outline { color: #0B0B0B; }
+.pf-brutalist .pf-hero h1 { font-weight: 850; text-transform: uppercase; letter-spacing: -.02em; font-size: clamp(34px, 6.4cqi, 64px); }
+.pf-brutalist .pf-eyebrow, .pf-brutalist .pf-sec h2, .pf-brutalist .pf-chips li, .pf-brutalist .pf-tl-head em { font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace; }
+.pf-brutalist .pf-eyebrow { color: #0B0B0B; background: #fff; display: inline-block; padding: 2px 8px; border: 2px solid #0B0B0B; }
+.pf-brutalist .pf-sec h2 { display: inline-block; background: #0B0B0B; color: #fff; padding: 4px 10px; }
+.pf-brutalist .pf-card, .pf-brutalist .pf-certs li, .pf-brutalist .pf-quotes blockquote { border: 2.5px solid #0B0B0B; border-radius: 0; box-shadow: 6px 6px 0 #0B0B0B; }
+.pf-brutalist .pf-cover { border-bottom: 2.5px solid #0B0B0B; }
+.pf-brutalist .pf-btn { border-radius: 0; border: 2.5px solid #0B0B0B; box-shadow: 4px 4px 0 #0B0B0B; }
+.pf-brutalist .pf-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #0B0B0B; }
+.pf-brutalist .pf-skills li, .pf-brutalist .pf-chips li { border: 2px solid #0B0B0B; border-radius: 0; }
+.pf-brutalist .pf-hero-photo .pf-face { border-radius: 0 !important; border: 3px solid #0B0B0B; box-shadow: 8px 8px 0 var(--pf-accent); }
+.pf-brutalist .pf-gallery img { border: 2.5px solid #0B0B0B; border-radius: 0; }
+.pf-brutalist .pf-tl::before { background: #0B0B0B; }
+.pf-brutalist .pf-tl li::before { border-radius: 0; border-color: #0B0B0B; background: var(--pf-accent); }
+.pf-brutalist .pf-form input, .pf-brutalist .pf-form textarea { border: 2px solid #0B0B0B; border-radius: 0; }
+.pf-brutalist .pf-foot { border-top: 3px solid #0B0B0B; }
+
+/* --- Pastel (0.5.0): soft gradient, rounded cards, friendly type --- */
+.pf-pastel { --pf-bg: #FFF8FB; --pf-ink: #2A2238; --pf-muted: #776C88; --pf-line: #F0E3F0; --pf-card: #fff; --pf-chip: #F3EDFF; --pf-chip-ink: #5B4A86; --pf-title-font: var(--font);
+  background: linear-gradient(180deg, #FFF1F7 0, #F6F1FF 420px, #FFF8FB 900px); }
+.pf-pastel .pf-nav { border-bottom: 0; background: rgba(255,248,251,.8); }
+.pf-pastel .pf-hero { margin-top: 14px; padding: 34px clamp(18px, 4cqi, 40px); border-radius: 28px; background: rgba(255,255,255,.75); box-shadow: 0 20px 50px rgba(120,80,160,.08); }
+.pf-pastel .pf-hero h1 { font-weight: 760; letter-spacing: -.03em; }
+.pf-pastel .pf-eyebrow { display: inline-block; background: var(--accent-soft); padding: 4px 12px; border-radius: 99px; letter-spacing: .06em; }
+.pf-pastel .pf-card, .pf-pastel .pf-certs li { border-radius: 22px; border-color: transparent; box-shadow: 0 10px 30px rgba(120,80,160,.08); }
+.pf-pastel .pf-cover { margin: 8px 8px 0; border-radius: 16px; background: linear-gradient(135deg, color-mix(in srgb, var(--pf-accent) 55%, #fff), #C4B5FD 60%, #A5F3FC); }
+.pf-pastel .pf-btn { border-radius: 99px; }
+.pf-pastel .pf-sec h2 { color: var(--pf-ink); letter-spacing: .08em; }
+.pf-pastel .pf-sec h2::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--pf-accent); margin-right: 8px; vertical-align: 1px; }
+.pf-pastel .pf-quotes blockquote { border-radius: 22px; background: #fff; border-color: transparent; box-shadow: 0 10px 30px rgba(120,80,160,.06); }
+.pf-pastel .pf-gallery img { border-radius: 18px; border: 0; }
+.pf-pastel .pf-form input, .pf-pastel .pf-form textarea { border-radius: 14px; }
+
 @container pf (max-width: 720px) {
   .pf-nav { padding: 10px 16px; gap: 8px; }
   .pf-nav-links { display: none; }
@@ -146,6 +214,8 @@
   .pf-headline { font-size: 17px; }
   .pf-projects, .pf-contact-grid, .pf-form { grid-template-columns: minmax(0, 1fr); }
   .pf-creative .pf-hero { padding: 24px 18px; }
+  .pf-pastel .pf-hero { padding: 24px 18px; border-radius: 20px; }
+  .pf-brutalist .pf-nav-links { display: none; }
   .pf-foot { flex-direction: column; align-items: center; text-align: center; }
   .pf-tl-head em { margin-left: 0; padding-left: 0; width: 100%; }
 }

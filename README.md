@@ -20,15 +20,18 @@ No real account yet. A guest session lives in this browser. All resumes, applica
 - Dashboard + Resumes page: create (blank or Software Engineer / Fresher-Student / Product Designer samples), open, duplicate, rename, delete (with confirmation), search.
 - Editor sections: Contact (incl. LinkedIn/GitHub/portfolio profiles), Summary, Experience, Education, Projects, Skills, Certifications, Achievements. Add / remove / reorder entries; bullet lists with reorder (Enter adds a bullet, Backspace on an empty bullet removes it).
 - Live preview at real A4 size (scaled), page-break guides when content runs past one page.
-- **27 templates**, each tagged **ATS-friendly** (14) or **Design-focused** (13), chosen from a gallery with thumbnails, search, tag filter and category filter (Single column, Two column, Minimal, Classic, Creative, Executive, Tech, Academic, Student). Every template renders all sections and prints to a clean A4 page.
-  - ATS-friendly: Modern, Minimal ATS, Classic Serif, Harvard, Compact, Clean Pro, Ribbon, Startup, Monochrome, Executive Classic, Developer, Academic CV, Fresher, Campus Placement.
-  - Design-focused: Executive, Elegant, Sidebar Right, Corporate, Infographic (skill bars), Creative Banner, Metro, Timeline, Bold, Nordic, Portfolio, Tech Stack, Scholar.
+- **36 templates**, each tagged **ATS-friendly** (19) or **Design-focused** (17), chosen from a gallery with thumbnails, search, tag filter and category filter (Single column, Two column, Minimal, Classic, Creative, Executive, Tech, Academic, Student). Every template renders all sections and prints to a clean A4 page.
+  - ATS-friendly: Modern, Minimal ATS, Classic Serif, Harvard, Compact, Clean Pro, Ribbon, Startup, Monochrome, Executive Classic, Developer, Academic CV, Fresher, Campus Placement, Consultant, Analyst, Engineer, Graduate, Banker.
+  - Design-focused: Executive, Elegant, Sidebar Right, Corporate, Infographic (skill bars), Creative Banner, Metro, Timeline, Bold, Nordic, Portfolio, Tech Stack, Scholar, Slate, Aurora, Studio, Pulse.
 - **16 colour presets** (Violet, Indigo, Navy, Sky, Teal, Emerald, Forest, Slate, Charcoal, Black, Purple, Rose, Burgundy, Coral, Amber, Gold) plus a **custom colour picker**. Light colours are automatically darkened until text meets WCAG AA contrast (4.5:1) on white; the editor shows the adjusted value.
 - **Font pairings:** template default, Sans (Inter), Serif headings (Fraunces), Classic (Georgia).
 - Optional skill *Level* (e.g. Expert, 80%) used by skill-bar templates.
 - Autosave (debounced) with a *Saving… / Saved* indicator.
 - Versions: manual "Save version" snapshots (optional label), up to **50 per resume** (oldest dropped), restore with confirmation, delete.
-- Export: **PDF** via the browser print dialog (print stylesheet prints only the resume on a clean A4 page — choose *Save as PDF*), **Plain text**, **JSON Resume** (jsonresume.org schema; template/colour kept in `meta.hireReady`).
+- **Download as PDF** (`Name_Resume.pdf`): a real, text-selectable A4 PDF generated on the device (jsPDF, standard PDF fonts) that follows the template's colours, header, heading style, section order and sidebar. Multi-page with proper margins.
+- **Download as Word** (`Name_Resume.docx`): a real Word document generated on the device (hand-written Office Open XML, zipped with fflate) with Title / Heading / List Bullet styles, real Word bullets, right-aligned dates, template colours and fonts. Word export is always single-column, which is what most ATS parse best.
+- Also: **Print / Save as PDF** (pixel-exact look via the browser), **Plain text**, **JSON Resume** (jsonresume.org schema; template/colour kept in `meta.hireReady`).
+- **Upload a résumé (PDF, Word .docx or .txt, up to 8 MB)** from the Resumes page: the file is read on the device (pdf.js for PDF, fflate + DOMParser for DOCX), split into sections and mapped to contact details, summary, experience (title, company, location, dates, bullets), education (degree, institution, dates, CGPA), projects, skill groups, certifications and achievements. A **review step** shows what was found (with warnings) and lets you fix names, contact fields and entries, pick a template, then *Save as new resume* or *Save & check ATS*.
 - Import a JSON Resume file as a new resume.
 - ATS score panel in the editor (general score, breakdown, top suggestions with **Fix** links that open the right section).
 
@@ -36,17 +39,19 @@ No real account yet. A guest session lives in this browser. All resumes, applica
 - **Builder** with Sections / Live preview / Design & publish (tabs on mobile). Sections: About/hero (photo, headline, “open to”, bio, location, website), **Projects**, Skills, Experience, Education, Certifications, Gallery, Testimonials, Contact & social links. Each section can be hidden or reordered.
 - **Import from résumé** fills About, Projects, Skills, Experience, Education, Certifications and Contact from any saved résumé (images, gallery and testimonials are kept).
 - **Project editor**: title, role, tech tags, description, cover image, screenshot gallery (up to 6), GitHub and live-demo links, *Featured* toggle (featured projects show first).
-- **4 themes** — Minimal, Developer (dark), Creative, Academic — plus 6 accent colours and a custom colour. Theme gallery at `/portfolio/themes`; full-page local preview at `/portfolio/preview`.
+- **8 themes** — Minimal, Developer (dark), Creative, Academic, Editorial (warm serif magazine), Midnight (dark navy with glow), Brutalist (bold borders and hard shadows), Pastel (soft gradients and rounded cards) — plus 6 accent colours and a custom colour. Theme gallery at `/portfolio/themes`; full-page local preview at `/portfolio/preview`.
 - **Images are compressed on the device**: longest side resized to 1600 px and saved as WebP (JPEG fallback) before they are stored.
 - **Publish & share** (`/portfolio/publish`): custom link (`/p/your-name`, availability check), **Public / Private / Password**, **Hide phone number** (applied on the server), choose the résumé behind *Download résumé*, copy link, **QR code** (SVG on screen, PNG download), size meter (2 MB limit), unpublish.
 - **Public page** `/p/:slug`: hero with photo and CTAs (*Download résumé* opens a print-ready PDF of the chosen résumé; *Contact*), featured project cards, skills, experience timeline, education, certifications, gallery, testimonials, contact form (opens the visitor’s email app; nothing is stored), links and QR code. Server-rendered `<title>`, description, canonical and Open Graph tags for public portfolios; password and private pages are `noindex`.
 
 ### ATS Check (`/ats`)
 Everything runs in the browser: no external APIs, nothing uploaded.
-- Pick a resume, then paste a job description or load one of four sample JDs (Backend Engineer, Embedded/IoT Firmware, Product Designer, Data Analyst).
+- Check a **saved résumé or upload a file** (PDF / DOCX / TXT, read on the device; no need to save it first), then paste a job description or load one of four sample JDs (Backend Engineer, Embedded/IoT Firmware, Product Designer, Data Analyst).
+- **Match report** (inspired by job-match scanners such as Jobalytics, built from scratch): **match rate %** (priority-weighted; aim for 70%+), **job title match**, and a keyword table grouped into **Hard skills / Soft skills / Other** tabs with **priority** (High / Medium / Low — from how often the posting repeats a term and whether it sits in the must-have or nice-to-have part), **count in the job post vs in your résumé**, and **where** each keyword appears (Summary, Skills, Experience, Projects, Education…).
+- **One-click "Add to skills"** per keyword, and **"Add N missing hard skills"** at once (with a reminder to only add skills you really have). Tips flag wording differences (e.g. *JS* vs *JavaScript*: use both) and high-priority keywords that are only listed in Skills and not backed by an Experience bullet.
 - **Score 0–100** with a gauge and a breakdown: keyword match (35), section completeness (10), formatting & ATS safety (15, uses the template's ATS tag), contact info (8), length (7), bullet quality (15: action verbs, numbers/%, no first person, 8–30 words), readability (5), date consistency (5). Without a JD the other 65 points are scaled to 100.
 - Keywords come from a built-in multi-domain skills dictionary (software, cloud, data/ML, embedded/IoT, design, product, marketing, finance, soft skills, certifications, degrees) with aliases, plus repeated n-grams from the JD (stopwords removed).
-- **Matched** (teal) and **missing** (coral) keyword chips; clicking a missing keyword explains where to add it, with a button that opens that editor section.
+- **Matched** (teal) and **missing** (coral) keywords; clicking a missing keyword explains where to add it, with a button that opens that editor section.
 - Suggestions sorted by severity (high / medium / low) with **Fix** links.
 - Rule-based **bullet rewrites** for weak openers ("Responsible for", "Worked on", "Helped", "I …"): **Apply** replaces just the opener; bullets without numbers get a prompt to add a measurable result.
 - **Save report** keeps a history per resume (IndexedDB). In the tracker, an application can link to a saved ATS report and the card shows its score.
@@ -66,7 +71,7 @@ Everything runs in the browser: no external APIs, nothing uploaded.
 - Accessibility: labelled inputs, skip link, native `<dialog>` modals (focus trap + Esc), radio-group semantics for template/colour pickers, keyboard-operable menus, visible focus rings, reduced-motion support.
 
 ## Stack
-Vite 7 + React 19 + TypeScript, plain CSS. Runtime deps: `react`, `react-dom`, `idb` (~1 kB), and self-hosted fonts (`@fontsource-variable/inter`, `@fontsource/fraunces`) — no Google Fonts requests.
+Vite 7 + React 19 + TypeScript, plain CSS. Runtime deps: `react`, `react-dom`, `idb` (~1 kB); lazy-loaded only when used: `pdfjs-dist` (reading PDFs), `jspdf` (PDF download), `fflate` (DOCX read/write), `qrcode-generator` (portfolio QR); and self-hosted fonts (`@fontsource-variable/inter`, `@fontsource/fraunces`) — no Google Fonts requests.
 
 ## Local development
 ```bash
@@ -86,7 +91,9 @@ npm run dev                             # optional: Vite on :5173 proxies /api t
 
 Optional smoke test + screenshots (Python Playwright, uses a local Chrome):
 ```bash
-python3 scripts/portfolio_e2e.py         # with serve:local running: portfolio build/import/images/themes/publish/visitor/password/private/unpublish/mobile
+python3 scripts/portfolio_e2e.py         # with serve:local running: portfolio build/import/images/8 themes/publish/visitor/password/private/unpublish/mobile
+python3 scripts/upload_export_ats_e2e.py # with serve:local running: upload PDF+DOCX, review, download PDF+DOCX (validated), new templates, ATS match (desktop + mobile)
+python3 scripts/make_resume_fixtures.py  # regenerates the fictional upload fixtures in scripts/fixtures (needs python-docx + LibreOffice)
 npm run build && npx vite preview --port 4173 &
 python3 scripts/review.py                # core smoke test, screenshots-review/*.png and a sample PDF
 python3 scripts/ats_templates_review.py  # ATS flow, all templates (render, overflow, print/PDF), colours, persistence, contact sheet
@@ -135,7 +142,10 @@ npx vercel --prod   # production deploy
 Stage 2 (Google SSO + sync via Supabase) can upload this same data on first sign-in. Details and the planned hook points are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Changes are listed in [docs/CHANGELOG.md](docs/CHANGELOG.md).
 
 ## Known limitations
-- PDF export uses the browser print dialog (users pick *Save as PDF*); multi-page resumes break wherever the browser breaks them, with no top margin on page 2.
+- The downloaded PDF uses the standard PDF fonts (Helvetica / Times / Courier), so it looks close to, not identical to, the on-screen template; characters outside Windows-1252 are transliterated (e.g. ₹ → "Rs."). *Print / Save as PDF* gives the exact on-screen look.
+- Word export is single-column for every template (sidebars become normal sections); icons, skill bars and photos are not included.
+- Résumé upload is best effort: unusual layouts, tables-as-layout and multi-column PDFs may need fixes in the review step. Scanned / image-only PDFs (no OCR), password-protected PDFs and old `.doc` files are not supported.
+- The match report has no browser extension, job-board import or AI rewriting / cover letters; the keyword dictionary is finite.
 - Section order is set by the template (e.g. Fresher and Academic put Education first); entries inside each section can be reordered.
 - The ATS score is a rule-based estimate. Real applicant tracking systems differ, and keyword matching is literal (synonyms outside the built-in alias list are not recognised).
 - Drag-and-drop is desktop-only (HTML5 DnD doesn't fire on touch); mobile uses the move buttons / status dropdown.
