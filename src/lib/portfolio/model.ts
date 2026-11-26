@@ -14,9 +14,15 @@ export const THEMES: { id: PortfolioTheme; name: string; blurb: string }[] = [
   { id: 'midnight', name: 'Midnight', blurb: 'Deep navy with an accent glow and glassy cards. Striking at night.' },
   { id: 'brutalist', name: 'Brutalist', blurb: 'Thick borders, hard shadows and mono labels. Loud and confident.' },
   { id: 'pastel', name: 'Pastel', blurb: 'Soft gradient, rounded cards and friendly type. Warm and approachable.' },
+  { id: 'terminal', name: 'Terminal', blurb: 'Black screen, phosphor accent and monospace everything. For engineers.' },
+  { id: 'corporate', name: 'Corporate', blurb: 'Navy header, crisp cards and a grey canvas. Safe for finance, consulting and ops.' },
+  { id: 'sunset', name: 'Sunset', blurb: 'Warm orange-to-pink hero, big type and rounded cards. Great for marketing and design.' },
+  { id: 'glass', name: 'Glass', blurb: 'Frosted cards over a colourful gradient. Modern and eye-catching.' },
+  { id: 'forest', name: 'Forest', blurb: 'Earthy greens, serif headlines and paper tones. Calm and grounded.' },
 ];
 
-const THEME_ACCENT: Record<PortfolioTheme, string> = { minimal: '#5B3DF5', developer: '#0F9D9A', creative: '#5B3DF5', academic: '#8C1D40', editorial: '#C2410C', midnight: '#3B82F6', brutalist: '#FF5C39', pastel: '#DB2777' };
+const THEME_ACCENT: Record<PortfolioTheme, string> = { minimal: '#5B3DF5', developer: '#0F9D9A', creative: '#5B3DF5', academic: '#8C1D40', editorial: '#C2410C', midnight: '#3B82F6', brutalist: '#FF5C39', pastel: '#DB2777',
+  terminal: '#22C55E', corporate: '#1D4ED8', sunset: '#EA580C', glass: '#7C3AED', forest: '#2F6B3F' };
 export const themeDefaultAccent = (t: PortfolioTheme) => THEME_ACCENT[t];
 
 export const PORTFOLIO_ACCENTS: { name: string; hex: string }[] = [
@@ -27,13 +33,22 @@ export const PORTFOLIO_ACCENTS: { name: string; hex: string }[] = [
 export const SECTION_LABELS: Record<SectionKey, string> = {
   about: 'About / hero', projects: 'Projects', skills: 'Skills', experience: 'Experience', education: 'Education',
   certifications: 'Certifications', gallery: 'Gallery', testimonials: 'Testimonials', contact: 'Contact & links',
+  stats: 'At a glance (numbers)', services: 'Services / What I do', expertise: 'Skill levels', awards: 'Awards & achievements', articles: 'Writing & talks', languages: 'Languages',
 };
-const ORDER: SectionKey[] = ['about', 'projects', 'skills', 'experience', 'education', 'certifications', 'gallery', 'testimonials', 'contact'];
+const ORDER: SectionKey[] = ['about', 'stats', 'services', 'projects', 'skills', 'expertise', 'experience', 'education', 'certifications', 'awards', 'articles', 'languages', 'gallery', 'testimonials', 'contact'];
+/** Sections added after 0.4.0; inserted before Contact for older portfolios. */
+const NEW_KEYS: SectionKey[] = ['stats', 'services', 'expertise', 'awards', 'articles', 'languages'];
+
+export const AVAILABILITY: { id: PortfolioData['about']['availability']; label: string }[] = [
+  { id: '', label: 'Don’t show' }, { id: 'open', label: 'Open to work' }, { id: 'freelance', label: 'Available for freelance' }, { id: 'busy', label: 'Not available right now' },
+];
+export const LANGUAGE_LEVELS = ['Native', 'Fluent', 'Professional', 'Conversational', 'Basic'];
 
 export function emptyData(): PortfolioData {
   return {
-    about: { name: '', headline: '', bio: '', location: '', openTo: '', photo: '', email: '', phone: '', website: '' },
+    about: { name: '', headline: '', bio: '', location: '', openTo: '', photo: '', email: '', phone: '', website: '', availability: '', availabilityNote: '' },
     projects: [], skills: [], experience: [], education: [], certifications: [], gallery: [], testimonials: [],
+    stats: [], services: [], expertise: [], awards: [], articles: [], languages: [],
     contact: { email: '', phone: '', linkedin: '', github: '', website: '', twitter: '', showForm: true },
     sections: ORDER.map((key) => ({ key, visible: true })),
   };
@@ -104,6 +119,7 @@ export function importFromResume(p: Portfolio, r: Resume): Portfolio {
       id: e.id || uid(), school: e.institution, degree: [e.studyType, e.area].filter(Boolean).join(', '), start: fmtMonth(e.startDate), end: e.endDate ? fmtMonth(e.endDate) : 'Present', detail: e.score,
     })) : p.data.education,
     certifications: c.certificates.length ? c.certificates.map((x) => ({ id: x.id || uid(), name: x.name, issuer: x.issuer, date: fmtMonth(x.date), url: x.url ?? '' })) : p.data.certifications,
+    awards: c.awards.length ? c.awards.map((x) => ({ id: x.id || uid(), title: x.title, issuer: x.awarder, date: fmtMonth(x.date), detail: x.summary ?? '' })) : p.data.awards,
     contact: {
       ...p.data.contact, email: b.email || p.data.contact.email, phone: b.phone || p.data.contact.phone,
       linkedin: prof(/linkedin/i) || p.data.contact.linkedin, github: prof(/github/i) || p.data.contact.github,
@@ -142,23 +158,42 @@ export function localView(p: Portfolio, resume: Resume | undefined): PublicPortf
   return { slug: p.slug, theme: pl.theme, accent: pl.accent, data, resume: res };
 }
 
-/** Defensive defaults for data received from the server (older or partial payloads). */
-export function normalizeView(v: PublicPortfolio): PublicPortfolio {
+/** Fills defaults for older or partial data (portfolios saved or published before newer fields existed). */
+export function normalizeData(raw: unknown): PortfolioData {
   const e = emptyData();
-  const d = (v.data ?? {}) as Partial<PortfolioData>;
+  const d = (raw ?? {}) as Partial<PortfolioData>;
   const arr = <T,>(x: unknown): T[] => (Array.isArray(x) ? (x as T[]) : []);
   const keys = new Set(e.sections.map((s) => s.key));
   const secs = arr<{ key: SectionKey; visible: boolean }>(d.sections).filter((s) => keys.has(s.key));
+  for (const k of NEW_KEYS) {
+    if (secs.some((x) => x.key === k)) continue;
+    const ci = secs.findIndex((x) => x.key === 'contact');
+    secs.splice(ci >= 0 ? ci : secs.length, 0, { key: k, visible: true });
+  }
   for (const s of e.sections) if (!secs.some((x) => x.key === s.key)) secs.push(s);
+  const withId = <T extends { id?: string }>(x: T) => ({ ...x, id: x.id || uid() }) as T & { id: string };
   return {
-    ...v,
-    theme: THEMES.some((t) => t.id === v.theme) ? v.theme : 'minimal',
-    data: {
-      about: { ...e.about, ...(d.about ?? {}) },
-      contact: { ...e.contact, ...(d.contact ?? {}) },
-      projects: arr<PProject>(d.projects).map((p) => ({ ...{ id: uid(), title: '', role: '', description: '', cover: '', github: '', demo: '', featured: false }, ...p, tags: arr<string>(p.tags), gallery: arr<string>(p.gallery) })),
-      skills: arr<string>(d.skills), experience: arr(d.experience), education: arr(d.education), certifications: arr(d.certifications),
-      gallery: arr(d.gallery), testimonials: arr(d.testimonials), sections: secs,
-    },
+    about: { ...e.about, ...(d.about ?? {}) },
+    contact: { ...e.contact, ...(d.contact ?? {}) },
+    projects: arr<PProject>(d.projects).map((p) => ({ ...{ id: uid(), title: '', role: '', description: '', cover: '', github: '', demo: '', featured: false }, ...p, tags: arr<string>(p.tags), gallery: arr<string>(p.gallery) })),
+    skills: arr<string>(d.skills), experience: arr(d.experience), education: arr(d.education), certifications: arr(d.certifications),
+    gallery: arr(d.gallery), testimonials: arr(d.testimonials),
+    stats: arr<Partial<PortfolioData['stats'][number]>>(d.stats).map((x) => withId({ value: '', label: '', ...x })),
+    services: arr<Partial<PortfolioData['services'][number]>>(d.services).map((x) => withId({ title: '', description: '', icon: 'code' as const, ...x })),
+    expertise: arr<Partial<PortfolioData['expertise'][number]>>(d.expertise).map((x) => withId({ name: '', ...x, level: Math.max(0, Math.min(100, Number(x.level) || 0)) })),
+    awards: arr<Partial<PortfolioData['awards'][number]>>(d.awards).map((x) => withId({ title: '', issuer: '', date: '', detail: '', ...x })),
+    articles: arr<Partial<PortfolioData['articles'][number]>>(d.articles).map((x) => withId({ title: '', url: '', outlet: '', date: '', summary: '', ...x })),
+    languages: arr<Partial<PortfolioData['languages'][number]>>(d.languages).map((x) => withId({ name: '', level: '', ...x })),
+    sections: secs,
   };
+}
+
+/** Local portfolio with defaults filled in (call on load and on backup import). */
+export function normalizePortfolio(p: Portfolio): Portfolio {
+  return { ...p, theme: THEMES.some((t) => t.id === p.theme) ? p.theme : 'minimal', data: normalizeData(p.data) };
+}
+
+/** Defensive defaults for data received from the server (older or partial payloads). */
+export function normalizeView(v: PublicPortfolio): PublicPortfolio {
+  return { ...v, theme: THEMES.some((t) => t.id === v.theme) ? v.theme : 'minimal', data: normalizeData(v.data) };
 }

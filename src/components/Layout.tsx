@@ -11,6 +11,7 @@ const NAV = [
   { key: 'ats', href: '/ats', label: 'ATS Check', short: 'ATS', icon: 'target' },
   { key: 'portfolio', href: '/portfolio', label: 'My Portfolio', short: 'Portfolio', icon: 'globe' },
   { key: 'tracker', href: '/tracker', label: 'Applications', short: 'Tracker', icon: 'board' },
+  { key: 'calendar', href: '/calendar', label: 'Calendar', short: 'Plan', icon: 'calendar' },
   { key: 'settings', href: '/settings', label: 'Data & settings', short: 'Settings', icon: 'settings' },
 ];
 
@@ -23,10 +24,11 @@ export function Logo() {
 }
 
 export function Layout({ section, children, fullBleed }: { section: string; children: ReactNode; fullBleed?: boolean }) {
-  const { resumes, applications } = useStore();
+  const { resumes, applications, events } = useStore();
   const today = todayStr();
   const overdue = applications.filter((a) => a.followUp && a.followUp < today && a.status !== 'offer' && a.status !== 'rejected').length;
-  const badge = (k: string) => (k === 'resumes' && resumes.length ? { n: resumes.length, tone: 'soft' } : k === 'tracker' && overdue ? { n: overdue, tone: 'coral' } : null);
+  const dueToday = events.filter((e) => !e.done && e.date === today).length;
+  const badge = (k: string) => (k === 'resumes' && resumes.length ? { n: resumes.length, tone: 'soft' } : k === 'tracker' && overdue ? { n: overdue, tone: 'coral' } : k === 'calendar' && dueToday ? { n: dueToday, tone: 'soft' } : null);
 
   return (
     <div className="shell">

@@ -107,9 +107,18 @@ function render(doc: JsPDF, m: DocModel): number {
     if (side) { main.x = mainX; }
   } else {
     const fullX = side && !side.dark ? M : main.x, fullW = side && !side.dark ? PAGE_W - 2 * M : main.w;
-    const cx = s.align === 'center' ? fullX + fullW / 2 : fullX;
-    const opt = s.align === 'center' ? { align: 'center' as const } : undefined;
-    set(headFamily, 'bold', FS.name, accent);
+    const cx = s.align === 'center' ? fullX + fullW / 2 : s.align === 'right' ? fullX + fullW : fullX;
+    const opt = s.align === 'center' ? { align: 'center' as const } : s.align === 'right' ? { align: 'right' as const } : undefined;
+    const startY = main.y;
+    if (s.header === 'tinted') {
+      set('helvetica', 'normal', 8.8, MUTED);
+      const h = FS.name + 8 + (m.label ? 17 : 0) + lines(contactText, fullW).length * 12 + 10;
+      doc.setFillColor(...soft); doc.rect(0, 0, PAGE_W, startY + h + 4, 'F');
+      main.y += 4;
+    }
+    if (s.header === 'ruled') { doc.setFillColor(...accent); doc.rect(fullX, main.y - 8, fullW, 4, 'F'); main.y += 6; }
+    if (s.header === 'frame') main.y += 10;
+    set(headFamily, 'bold', FS.name, s.header === 'ruled' ? INK : accent);
     if (s.split) {
       doc.text(pdfSafe(m.name), fullX, main.y + FS.name);
       set('helvetica', 'normal', 8.6, MUTED);
@@ -123,13 +132,16 @@ function render(doc: JsPDF, m: DocModel): number {
       doc.text(pdfSafe(m.name), cx, main.y + FS.name, opt); main.y += FS.name + 8;
       if (m.label) { set('helvetica', 'bold', FS.label, BODY); doc.text(pdfSafe(m.label.toUpperCase()), cx, main.y + 8, opt); main.y += 17; }
       set('helvetica', 'normal', 8.8, MUTED);
-      for (const ln of lines(contactText, fullW)) { doc.text(ln, cx, main.y + 9, opt); main.y += 12; }
+      for (const ln of lines(contactText, s.header === 'frame' ? fullW - 24 : fullW)) { doc.text(ln, cx, main.y + 9, opt); main.y += 12; }
       main.y += 10;
+      if (s.header === 'frame') { doc.setDrawColor(...accent); doc.setLineWidth(1.6); doc.rect(fullX, startY - 2, fullW, main.y - startY + 2, 'S'); main.y += 12; }
+      if (s.header === 'ruled' || s.header === 'right') { doc.setDrawColor(...(s.header === 'ruled' ? accent : [225, 222, 232] as Rgb)); doc.setLineWidth(0.8); doc.line(fullX, main.y - 4, fullX + fullW, main.y - 4); main.y += 8; }
+      if (s.header === 'tinted') main.y += 12;
     }
     if (side && !side.dark) {
-      doc.setDrawColor(225, 222, 232); doc.setLineWidth(0.6); doc.line(M, main.y - 4, PAGE_W - M, main.y - 4);
+      if (s.header !== 'tinted') { doc.setDrawColor(225, 222, 232); doc.setLineWidth(0.6); doc.line(M, main.y - 4, PAGE_W - M, main.y - 4); }
       // Tinted sidebar only below the header on page 1.
-      doc.setFillColor(255, 255, 255); doc.rect(sideX, 0, sideW, main.y - 5, 'F');
+      if (s.header !== 'tinted') { doc.setFillColor(255, 255, 255); doc.rect(sideX, 0, sideW, main.y - 5, 'F'); }
       sideCol.y = main.y + 6; main.y += 6;
     }
   }
@@ -141,11 +153,39 @@ function render(doc: JsPDF, m: DocModel): number {
     doc.text(pdfSafe(title.toUpperCase()), c.x, c.y + 9);
     c.y += 16;
   }
+  let secNo = 0;
   function heading(c: Col, title: string) {
     ensure(c, 40);
     const size = FS.head, y = c.y;
     const t = pdfSafe(title);
     switch (s.head) {
+      case 'number': {
+        secNo++;
+        const n = String(secNo).padStart(2, '0');
+        set(headFamily, 'bold', size, soft.map((v) => Math.max(0, v - 90)) as Rgb); doc.text(n, c.x, y + size);
+        const nw = doc.getTextWidth(n) + 8;
+        set(headFamily, 'bold', size - 0.6, INK); doc.text(t.toUpperCase(), c.x + nw, y + size); c.y += size + 10; return;
+      }
+      case 'tab': {
+        set('helvetica', 'bold', size - 1.4, WHITE);
+        const w = doc.getTextWidth(t.toUpperCase()) + 16;
+        doc.setFillColor(...accent); doc.rect(c.x, y, w, size + 6, 'F');
+        doc.text(t.toUpperCase(), c.x + 8, y + size + 1);
+        doc.setDrawColor(...accent); doc.setLineWidth(1.4); doc.line(c.x, y + size + 6, c.x + c.w, y + size + 6); c.y += size + 14; return;
+      }
+      case 'dotted': {
+        set(headFamily, 'bold', size - 0.6, accent); doc.text(t.toUpperCase(), c.x, y + size);
+        doc.setDrawColor(...accent); doc.setLineWidth(1); doc.setLineDashPattern([1, 2.2], 0);
+        doc.line(c.x, y + size + 4, c.x + c.w, y + size + 4); doc.setLineDashPattern([], 0); c.y += size + 12; return;
+      }
+      case 'overline': {
+        doc.setFillColor(...accent); doc.rect(c.x, y, 26, 2.6, 'F');
+        set(headFamily, 'bold', size + 0.4, accent); doc.text(t, c.x, y + size + 7); c.y += size + 15; return;
+      }
+      case 'square': {
+        doc.setFillColor(...accent); doc.rect(c.x, y + size - 6.8, 6, 6, 'F');
+        set(headFamily, 'bold', size - 0.6, accent); doc.text(t.toUpperCase(), c.x + 11, y + size); c.y += size + 10; return;
+      }
       case 'box': {
         doc.setFillColor(...accent); doc.rect(c.x, y, c.w, size + 8, 'F');
         set(headFamily, 'bold', size - 0.6, WHITE); doc.text(t.toUpperCase(), c.x + 6, y + size + 2.5);

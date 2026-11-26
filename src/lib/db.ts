@@ -1,5 +1,5 @@
 import { openDB, type IDBPDatabase } from 'idb';
-import type { Application, AtsReport, Resume, ResumeVersion } from './types';
+import type { Application, AtsReport, PlannerEvent, Resume, ResumeVersion } from './types';
 import type { Portfolio } from './portfolio/types';
 
 /**
@@ -14,9 +14,10 @@ export interface StoreMap {
   applications: Application;
   atsReports: AtsReport;
   portfolios: Portfolio;
+  events: PlannerEvent;
 }
 export type StoreName = keyof StoreMap;
-const STORES: StoreName[] = ['resumes', 'versions', 'applications', 'atsReports', 'portfolios'];
+const STORES: StoreName[] = ['resumes', 'versions', 'applications', 'atsReports', 'portfolios', 'events'];
 
 interface Backend {
   kind: 'indexeddb' | 'localstorage' | 'memory';
@@ -30,7 +31,7 @@ interface Backend {
 const DB_NAME = 'hire-ready';
 
 async function idbBackend(): Promise<Backend> {
-  const db: IDBPDatabase = await openDB(DB_NAME, 3, {
+  const db: IDBPDatabase = await openDB(DB_NAME, 4, {
     upgrade(d) {
       for (const s of STORES) {
         if (!d.objectStoreNames.contains(s)) {

@@ -8,7 +8,7 @@ All user data stays in the current browser. Nothing is sent to a server.
 
 | Location | What it stores |
 |---|---|
-| **IndexedDB** (`hire-ready`, via the `idb` library) | `resumes`, `versions` (up to 50 snapshots per resume), `applications`, `atsReports` (DB version 2; added in 0.3.0). If IndexedDB is unavailable, the app falls back to `localStorage`, then to in-memory storage (not persisted). |
+| **IndexedDB** (`hire-ready`, via the `idb` library) | `resumes`, `versions` (up to 50 snapshots per resume), `applications`, `atsReports` (added in 0.3.0), `portfolios` (0.4.0, DB v3), `events` (0.6.0 planner, DB v4). If IndexedDB is unavailable, the app falls back to `localStorage`, then to in-memory storage (not persisted). |
 | **localStorage** `hire-ready:session` | Guest session flag (`provider`, `firstName`, `signedInAt`). Cleared on sign-out so the next visit shows the Welcome page. |
 | **localStorage** `hire-ready:profile` | Display name used for the greeting. Kept on “keep my data” sign-out so “Sign back in” can restore it. Removed when the user chooses to erase data. |
 
@@ -69,11 +69,11 @@ When Google sign-in is enabled:
 
 Until that work lands, Hire Ready has no accounts and no server-side copy of anyone’s data.
 
-## Portfolio (0.4.0; 8 themes since 0.5.0)
+## Portfolio (0.4.0; 8 themes since 0.5.0, 13 since 0.6.0)
 
 ### Client
-- `src/lib/portfolio/` — types, model (empty portfolio, import from résumé, slug rules, payload/size, defensive `normalizeView`), API client, image compression (`compressImage`: canvas resize to ≤1600 px, WebP q0.8 with JPEG fallback, stored as data URLs), QR (`qrcode-generator`, dynamically imported), `usePublish` hook.
-- `src/portfolio/` — `Builder`, `ProjectModal`, `PublishPage`, `ThemesPage`, `LocalPreview`, `PublicPage`, `PortfolioView` (the one renderer used by the live page, builder preview and theme gallery; themes are CSS classes `pf-minimal|developer|creative|academic` with `--pf-accent`, and the layout adapts with container queries), `ResumePrint`.
+- `src/lib/portfolio/` — types, model (empty portfolio, import from résumé, slug rules, payload/size, defensive `normalizeData` / `normalizePortfolio` / `normalizeView` — fill missing arrays and insert newer section keys before Contact so portfolios saved or published before 0.6.0 keep working), API client, image compression (`compressImage`: canvas resize to ≤1600 px, WebP q0.8 with JPEG fallback, stored as data URLs), QR (`qrcode-generator`, dynamically imported), `usePublish` hook.
+- `src/portfolio/` — `Builder`, `ProjectModal`, `PublishPage`, `ThemesPage`, `LocalPreview`, `PublicPage`, `PortfolioView` (the one renderer used by the live page, builder preview and theme gallery; themes are CSS classes `pf-<theme>` (13) with `--pf-accent`, and the layout adapts with container queries), `ResumePrint`.
 - All portfolio routes are `React.lazy` chunks. `/p/:slug` is handled before the sign-in gate, without the app shell.
 - Storage: IndexedDB store `portfolios` (DB v3), one record `id: 'main'`. Edits are debounced like résumé edits; discrete choices (theme, colour, visibility) are written immediately. Backups include the record.
 
@@ -142,3 +142,14 @@ Vercel must sync with and deploy **only the `main` branch**.
 - When a GitHub Login Connection is added and the repo is linked, set the project's production branch to `main` if it is not already.
 - Do not deploy production from a feature branch, a dirty working tree, or a local commit that has not been pushed to `origin/main`.
 
+
+
+## Résumé template system (0.6.0)
+- Templates are data (`src/templates/registry.ts`, `GenericConfig`) rendered by `Generic.tsx` + `generic.css` and mapped to the PDF / DOCX exporters through `DocStyle` in `src/lib/export/model.ts`.
+- 0.6.0 adds header styles `frame | right | ruled | tinted`, heading styles `number | tab | dotted | overline | square`, categories *Simple / Professional / Functional*, and section orders for functional (skills-first), hybrid, licensed (certifications first) and results-first résumés. All are supported in HTML preview, jsPDF export and DOCX export (borders / shading / numbering).
+
+## Calendar / planner (0.6.0)
+- `src/pages/CalendarPage.tsx` (lazy chunk with `calendar.css`), route `/calendar`, nav key `calendar`.
+- Data: `PlannerEvent` in `src/lib/types.ts`; IndexedDB store `events` (DB v4 upgrade only creates the store). Store API: `events`, `upsertEvent`, `deleteEvent`; backups carry `events?` (merge by id on import, cleared by *Delete all data*).
+- Tracker items are derived at render time (applied date, follow-up date; *Interview* when status is interview) and never written to the `events` store.
+- `.ics` export is generated in the browser (RFC 5545 VEVENTs, floating local times, all-day as `VALUE=DATE`).

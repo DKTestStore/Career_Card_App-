@@ -78,6 +78,27 @@
 .tt-pastel { background: linear-gradient(180deg, #FFE4F0, #EDE4FF); border-color: #F0E3F0; }
 .tt-pastel .tt-bar { background: transparent; } .tt-pastel .tt-title { background: #2A2238; border-radius: 99px; } .tt-pastel .tt-line { background: #EC4899; border-radius: 99px; }
 .tt-pastel .tt-card { background: #fff; border-color: transparent; border-radius: 8px; box-shadow: 0 3px 8px rgba(120,80,160,.15); }
+.tt-terminal { background: #0B0F0C; border-color: #0B0F0C; }
+.tt-terminal .tt-bar { background: #101712; } .tt-terminal .tt-title { background: #22C55E; border-radius: 0; } .tt-terminal .tt-line { background: #1F5F33; border-radius: 0; }
+.tt-terminal .tt-card { background: #101712; border-color: #1F2B23; border-radius: 1px; }
+.tt-corporate { background: #F3F5F9; }
+.tt-corporate .tt-bar { background: #0F1B2D; height: 10px; } .tt-corporate .tt-title { background: #0F1B2D; } .tt-corporate .tt-line { background: #1D4ED8; }
+.tt-corporate .tt-card { background: #fff; border-color: #DDE3EC; }
+.tt-sunset { background: #FFF8F3; }
+.tt-sunset .tt-bar { height: 30px; background: linear-gradient(110deg, #EA580C, #E11D48 55%, #7C3AED); } .tt-sunset .tt-title { background: #fff; } .tt-sunset .tt-line { background: rgba(255,255,255,.75); }
+.tt-sunset .tt-card { background: #fff; border-color: transparent; border-radius: 6px; box-shadow: 0 3px 8px rgba(194,65,12,.18); }
+.tt-glass { background: radial-gradient(60px 40px at 0 0, #7C3AED, transparent), radial-gradient(60px 40px at 100% 30%, #EC4899, transparent), radial-gradient(70px 40px at 50% 100%, #0EA5E9, transparent), #1B1035; border-color: #1B1035; }
+.tt-glass .tt-bar { background: rgba(255,255,255,.1); } .tt-glass .tt-title { background: #fff; } .tt-glass .tt-line { background: rgba(255,255,255,.5); }
+.tt-glass .tt-card { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.3); border-radius: 5px; }
+.tt-forest { background: #F6F3EA; border-color: #DCD6C3; }
+.tt-forest .tt-bar { background: #F6F3EA; border-bottom: 1px solid #DCD6C3; } .tt-forest .tt-title { background: #2F6B3F; } .tt-forest .tt-line { background: #A3B18A; }
+.tt-forest .tt-card { background: #E6EBDD; border-color: #DCD6C3; }
+/* 0.6.0 builder rows for skill levels and languages */
+.lvl-row { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto auto; gap: 8px; align-items: center; margin-bottom: 8px; }
+.lvl-row input:not([type=range]), .lvl-row select { min-width: 0; height: 38px; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; font: inherit; font-size: 14px; background: #fff; }
+.lvl-row input[type=range] { width: 100%; accent-color: var(--violet); }
+.lvl-val { font-size: 12.5px; font-weight: 700; color: var(--muted); min-width: 36px; text-align: right; }
+.lvl-row:has(select) { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto; }
 .swatch-custom { position: relative; overflow: hidden; background: conic-gradient(#FF6B5C, #FFC24B, #0F9D9A, #5B3DF5, #FF6B5C); }
 .swatch-custom input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
 .import-box, .publish-box { display: flex; flex-direction: column; gap: 10px; }

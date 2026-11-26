@@ -19,6 +19,8 @@ const PublishPage = lazy(() => import('./portfolio/PublishPage'));
 const ThemesPage = lazy(() => import('./portfolio/ThemesPage'));
 const LocalPreview = lazy(() => import('./portfolio/LocalPreview'));
 const PublicPage = lazy(() => import('./portfolio/PublicPage'));
+// 0.6.0 planner
+const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 
 function isGate(path: string) {
   return path === '/welcome' || path === '/logout' || path === '/signed-out';
@@ -55,7 +57,7 @@ function SignedInApp({ path }: { path: string }) {
   }
 
   const m = /^\/resumes\/([^/]+)/.exec(path);
-  const section = m ? 'resumes' : path.startsWith('/resumes') ? 'resumes' : path.startsWith('/ats') ? 'ats' : path.startsWith('/portfolio') ? 'portfolio' : path.startsWith('/tracker') ? 'tracker' : path.startsWith('/settings') ? 'settings' : 'home';
+  const section = m ? 'resumes' : path.startsWith('/resumes') ? 'resumes' : path.startsWith('/ats') ? 'ats' : path.startsWith('/portfolio') ? 'portfolio' : path.startsWith('/tracker') ? 'tracker' : path.startsWith('/calendar') ? 'calendar' : path.startsWith('/settings') ? 'settings' : 'home';
 
   let page;
   if (m) page = <Editor id={decodeURIComponent(m[1])} />;
@@ -66,6 +68,7 @@ function SignedInApp({ path }: { path: string }) {
   else if (path === '/portfolio/themes') page = <Suspense fallback={pfLoading}><ThemesPage /></Suspense>;
   else if (section === 'portfolio') page = <Suspense fallback={pfLoading}><PortfolioBuilder /></Suspense>;
   else if (section === 'tracker') page = <Tracker />;
+  else if (section === 'calendar') page = <Suspense fallback={<div className="loading" role="status">Loading calendar…</div>}><CalendarPage /></Suspense>;
   else if (section === 'settings') page = <SettingsPage />;
   else page = <Dashboard />;
 

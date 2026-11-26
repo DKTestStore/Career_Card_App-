@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { getBackend } from './db';
-import type { Application, AppStatus, AtsReport, Backup, Resume, ResumeVersion } from './types';
+import type { Application, AppStatus, AtsReport, Backup, PlannerEvent, Resume, ResumeVersion } from './types';
 import type { Portfolio } from './portfolio/types';
 import { migrateResume } from './resume';
+import { normalizePortfolio } from './portfolio/model';
 import { nowIso, uid } from './util';
 
 export const MAX_VERSIONS = 50;
@@ -40,6 +41,10 @@ interface Store {
   /** Immediate write (create / publish state changes). */
   putPortfolio(p: Portfolio): Promise<void>;
   deletePortfolio(): Promise<void>;
+  /** 0.6.0 planner */
+  events: PlannerEvent[];
+  upsertEvent(e: PlannerEvent): Promise<void>;
+  deleteEvent(id: string): Promise<void>;
 }
 
 const Ctx = createContext<Store | null>(null);
@@ -58,6 +63,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [applications, setApps] = useState<Application[]>([]);
   const [atsReports, setReports] = useState<AtsReport[]>([]);
   const [portfolio, setPortfolioState] = useState<Portfolio | null>(null);
+  const [events, setEvents] = useState<PlannerEvent[]>([]);
+  const evRef = useRef<PlannerEvent[]>([]);
   const pfRef = useRef<Portfolio | null>(null);
   const pfTimer = useRef(0);
   const [saveState, setSaveState] = useState<SaveState>('idle');
@@ -78,14 +85,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     let alive = true;
     (async () => {
       const db = await getBackend();
-      const [raw, v, a, rep, pfs] = await Promise.all([db.getAll('resumes'), db.getAll('versions'), db.getAll('applications'), db.getAll('atsReports'), db.getAll('portfolios')]);
+      const [raw, v, a, rep, pfs, ev] = await Promise.all([db.getAll('resumes'), db.getAll('versions'), db.getAll('applications'), db.getAll('atsReports'), db.getAll('portfolios'), db.getAll('events').catch(() => [] as PlannerEvent[])]);
       if (!alive) return;
       // Migrate old template/accent ids so older data always renders.
       const r = raw.map((x) => migrateResume(x));
       for (let i = 0; i < r.length; i++) if (r[i] !== raw[i]) db.put('resumes', r[i]).catch(() => {});
       rep.sort((x, y) => y.createdAt.localeCompare(x.createdAt));
       repRef.current = rep; setReports(rep);
-      pfRef.current = pfs[0] ?? null; setPortfolioState(pfs[0] ?? null);
+      const pf0 = pfs[0] ? normalizePortfolio(pfs[0]) : null;
+      pfRef.current = pf0; setPortfolioState(pf0);
+      evRef.current = ev; setEvents(ev);
       r.sort((x, y) => y.updatedAt.localeCompare(x.updatedAt));
       resumesRef.current = r; versionsRef.current = v; appsRef.current = a;
       setResumes(r); setVersions(v); setApps(a); setKind(db.kind); setReady(true);
@@ -137,6 +146,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const setV = (next: ResumeVersion[]) => { versionsRef.current = next; setVersions(next); };
   const setA = (next: Application[]) => { appsRef.current = next; setApps(next); };
   const setRep = (next: AtsReport[]) => { repRef.current = next; setReports(next); };
+  const setEv = (next: PlannerEvent[]) => { evRef.current = next; setEvents(next); };
 
   const addResume = useCallback(async (r: Resume) => {
     setR([r, ...resumesRef.current]);
@@ -268,6 +278,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     app: 'hire-ready', schema: 1, exportedAt: nowIso(),
     resumes: resumesRef.current, versions: versionsRef.current, applications: appsRef.current, atsReports: repRef.current,
     ...(pfRef.current ? { portfolios: [pfRef.current] } : {}),
+    events: evRef.current,
   }), []);
 
   const importBackup = useCallback(async (b: Backup, mode: 'merge' | 'replace') => {
@@ -281,18 +292,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const v = merge(versionsRef.current, b.versions ?? []);
     const a = merge(appsRef.current, b.applications ?? []);
     const rep = merge(repRef.current, b.atsReports ?? []).sort((x, y) => y.createdAt.localeCompare(x.createdAt));
-    const pf = b.portfolios?.length ? b.portfolios[0] : mode === 'replace' ? null : pfRef.current;
-    setR(r); setV(v); setA(a); setRep(rep);
+    const pf = b.portfolios?.length ? normalizePortfolio(b.portfolios[0]) : mode === 'replace' ? null : pfRef.current;
+    const ev = merge(evRef.current, Array.isArray(b.events) ? b.events : []);
+    setR(r); setV(v); setA(a); setRep(rep); setEv(ev);
     clearTimeout(pfTimer.current); pfTimer.current = 0;
     pfRef.current = pf; setPortfolioState(pf);
-    await persist(async () => { const db = await getBackend(); await db.replaceAll({ resumes: r, versions: v, applications: a, atsReports: rep, portfolios: pf ? [pf] : [] }); });
+    await persist(async () => { const db = await getBackend(); await db.replaceAll({ resumes: r, versions: v, applications: a, atsReports: rep, portfolios: pf ? [pf] : [], events: ev }); });
   }, [persist]);
 
   const clearAll = useCallback(async () => {
-    setR([]); setV([]); setA([]); setRep([]);
+    setR([]); setV([]); setA([]); setRep([]); setEv([]);
     clearTimeout(pfTimer.current); pfTimer.current = 0;
     pfRef.current = null; setPortfolioState(null);
-    await persist(async () => { const db = await getBackend(); await db.replaceAll({ resumes: [], versions: [], applications: [], atsReports: [], portfolios: [] }); });
+    await persist(async () => { const db = await getBackend(); await db.replaceAll({ resumes: [], versions: [], applications: [], atsReports: [], portfolios: [], events: [] }); });
   }, [persist]);
 
   const saveAtsReport = useCallback(async (rep: AtsReport) => {
@@ -307,11 +319,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await persist(async () => { const db = await getBackend(); await db.delete('atsReports', id); for (const l of linked) await db.put('applications', l); });
   }, [persist]);
 
+  const upsertEvent = useCallback(async (e: PlannerEvent) => {
+    const next = { ...e, updatedAt: nowIso() };
+    const exists = evRef.current.some((x) => x.id === e.id);
+    setEv(exists ? evRef.current.map((x) => (x.id === e.id ? next : x)) : [...evRef.current, next]);
+    await persist(async () => { const db = await getBackend(); await db.put('events', next); });
+  }, [persist]);
+
+  const deleteEvent = useCallback(async (id: string) => {
+    setEv(evRef.current.filter((x) => x.id !== id));
+    await persist(async () => { const db = await getBackend(); await db.delete('events', id); });
+  }, [persist]);
+
   const value = useMemo<Store>(() => ({
+    events, upsertEvent, deleteEvent,
     ready, storageKind, resumes, versions, applications, atsReports, portfolio, updatePortfolio, putPortfolio, deletePortfolio, saveState, lastSaved, saveAtsReport, deleteAtsReport,
     addResume, updateResume, deleteResume, duplicateResume, saveVersion, restoreVersion, deleteVersion,
     upsertApplication, deleteApplication, moveApplication, exportBackup, importBackup, clearAll,
-  }), [ready, storageKind, resumes, versions, applications, atsReports, portfolio, updatePortfolio, putPortfolio, deletePortfolio, saveAtsReport, deleteAtsReport, saveState, lastSaved, addResume, updateResume, deleteResume, duplicateResume,
+  }), [events, upsertEvent, deleteEvent, ready, storageKind, resumes, versions, applications, atsReports, portfolio, updatePortfolio, putPortfolio, deletePortfolio, saveAtsReport, deleteAtsReport, saveState, lastSaved, addResume, updateResume, deleteResume, duplicateResume,
     saveVersion, restoreVersion, deleteVersion, upsertApplication, deleteApplication, moveApplication, exportBackup, importBackup, clearAll]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

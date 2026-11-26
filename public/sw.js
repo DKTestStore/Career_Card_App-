@@ -1,5 +1,5 @@
 /* Hire Ready service worker: offline app shell, no tracking. */
-const CACHE = 'hire-ready-v5';
+const CACHE = 'hire-ready-v6';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png'];
 
 self.addEventListener('install', (event) => {

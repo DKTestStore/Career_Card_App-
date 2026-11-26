@@ -10,7 +10,7 @@ export const MAX_BYTES = 2 * 1024 * 1024; // portfolio JSON incl. images
 export const MAX_REQUEST_BYTES = MAX_BYTES + 64 * 1024;
 export const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,38})[a-z0-9]$/;
 const RESERVED = new Set(['api', 'admin', 'app', 'www', 'p', 'new', 'edit', 'login', 'logout', 'signup', 'settings', 'portfolio', 'hireready', 'hire-ready', 'help', 'support', 'about', 'static', 'assets', 'null', 'undefined']);
-export const THEMES = ['minimal', 'developer', 'creative', 'academic', 'editorial', 'midnight', 'brutalist', 'pastel'];
+export const THEMES = ['minimal', 'developer', 'creative', 'academic', 'editorial', 'midnight', 'brutalist', 'pastel', 'terminal', 'corporate', 'sunset', 'glass', 'forest'];
 export const VISIBILITY = ['public', 'private', 'password'];
 
 export function checkSlug(s) {

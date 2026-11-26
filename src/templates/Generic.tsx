@@ -226,7 +226,7 @@ export function Generic({ c, cfg }: { c: ResumeContent; cfg: GenericConfig }) {
   );
   return (
     <div className="g-wrap">
-      {!headerInSide && <Header c={c} cfg={{ ...cfg, header: cfg.header === 'band' ? 'band' : 'left' }} />}
+      {!headerInSide && <Header c={c} cfg={{ ...cfg, header: ['band', 'tinted', 'ruled', 'frame'].includes(cfg.header) ? cfg.header : 'left' }} />}
       <div className="g-body">
         {cfg.side !== 'right' && side}
         <div className="g-main">{mainKeys.map((k) => <Section key={k} k={k} c={c} cfg={cfg} />)}</div>

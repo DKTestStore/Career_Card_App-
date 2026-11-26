@@ -5,8 +5,8 @@ import { Icon } from '../components/Icon';
 import { ConfirmDialog } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import { AutoTextarea, EntryCard, Field, ListInput } from '../components/fields';
-import { importFromResume, localView, newPortfolio, PORTFOLIO_ACCENTS, publicUrl, SECTION_LABELS, THEMES, themeDefaultAccent } from '../lib/portfolio/model';
-import type { Portfolio, PortfolioData, PortfolioTheme, PProject, SectionKey } from '../lib/portfolio/types';
+import { AVAILABILITY, importFromResume, LANGUAGE_LEVELS, localView, newPortfolio, PORTFOLIO_ACCENTS, publicUrl, SECTION_LABELS, THEMES, themeDefaultAccent } from '../lib/portfolio/model';
+import type { Availability, Portfolio, PortfolioData, PortfolioTheme, PProject, SectionKey, ServiceIcon } from '../lib/portfolio/types';
 import { usePublish } from '../lib/portfolio/usePublish';
 import { move, timeAgo, uid } from '../lib/util';
 import { Avatar } from './PortfolioView';
@@ -118,6 +118,7 @@ function Sections({ p, update }: { p: Portfolio; update: Update }) {
   const counts: Partial<Record<SectionKey, number>> = {
     projects: d.projects.length, skills: d.skills.length, experience: d.experience.length, education: d.education.length,
     certifications: d.certifications.length, gallery: d.gallery.length, testimonials: d.testimonials.length,
+    stats: d.stats.length, services: d.services.length, expertise: d.expertise.length, awards: d.awards.length, articles: d.articles.length, languages: d.languages.length,
   };
   const bodies: Record<SectionKey, ReactNode> = {
     about: <AboutForm p={p} edit={edit} />,
@@ -129,6 +130,12 @@ function Sections({ p, update }: { p: Portfolio; update: Update }) {
     gallery: <GalleryForm p={p} edit={edit} />,
     testimonials: <TestimonialsForm p={p} edit={edit} />,
     contact: <ContactForm p={p} edit={edit} />,
+    stats: <StatsForm p={p} edit={edit} />,
+    services: <ServicesForm p={p} edit={edit} />,
+    expertise: <ExpertiseForm p={p} edit={edit} />,
+    awards: <AwardsForm p={p} edit={edit} />,
+    articles: <ArticlesForm p={p} edit={edit} />,
+    languages: <LanguagesForm p={p} edit={edit} />,
   };
   return (
     <div className="ed-form-inner">
@@ -164,13 +171,14 @@ function Sections({ p, update }: { p: Portfolio; update: Update }) {
 
 const SEC_ICONS: Record<SectionKey, string> = {
   about: 'user', projects: 'templates', skills: 'target', experience: 'board', education: 'file', certifications: 'award', gallery: 'image', testimonials: 'quote', contact: 'mail',
+  stats: 'list', services: 'palette', expertise: 'target', awards: 'star', articles: 'link', languages: 'globe',
 };
 
 type Edit = (fn: (d: PortfolioData) => void) => void;
 
 function AboutForm({ p, edit }: { p: Portfolio; edit: Edit }) {
   const a = p.data.about;
-  const set = (k: keyof PortfolioData['about']) => (v: string) => edit((d) => { d.about[k] = v; });
+  const set = (k: Exclude<keyof PortfolioData['about'], 'availability'>) => (v: string) => edit((d) => { d.about[k] = v; });
   return (
     <>
       <div className="photo-row">
@@ -181,6 +189,15 @@ function AboutForm({ p, edit }: { p: Portfolio; edit: Edit }) {
       <Field label="Name" value={a.name} onChange={set('name')} autoComplete="name" />
       <Field label="Headline" value={a.headline} onChange={set('headline')} placeholder="Software Engineer · Backend & IoT" />
       <Field label="Open to (eyebrow)" value={a.openTo} onChange={set('openTo')} placeholder="Open to roles in Bengaluru & remote" />
+      <div className="grid2">
+        <div className="field">
+          <label htmlFor="pf-avail">Availability badge</label>
+          <select id="pf-avail" value={a.availability ?? ''} onChange={(e) => edit((d) => { d.about.availability = e.target.value as Availability; })} data-testid="pf-availability-select">
+            {AVAILABILITY.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
+          </select>
+        </div>
+        <Field label="Availability note" value={a.availabilityNote ?? ''} onChange={set('availabilityNote')} placeholder="From January 2027 · Remote" />
+      </div>
       <AutoTextarea label="Short bio" value={a.bio} onChange={set('bio')} rows={3} />
       <div className="grid2">
         <Field label="Location" value={a.location} onChange={set('location')} />
@@ -325,6 +342,138 @@ function TestimonialsForm({ p, edit }: { p: Portfolio; edit: Edit }) {
         </EntryCard>
       ))}
       <button type="button" className="add-link" onClick={() => edit((d) => { d.testimonials.push({ id: uid(), quote: '', name: '', role: '' }); })}><Icon name="plus" size={15} />Add testimonial</button>
+    </>
+  );
+}
+
+const SERVICE_ICONS: { id: ServiceIcon; label: string }[] = [
+  { id: 'code', label: 'Code' }, { id: 'palette', label: 'Design' }, { id: 'target', label: 'Strategy' }, { id: 'globe', label: 'Web' },
+  { id: 'board', label: 'Planning' }, { id: 'award', label: 'Quality' }, { id: 'file', label: 'Writing' }, { id: 'user', label: 'People' },
+];
+
+function StatsForm({ p, edit }: { p: Portfolio; edit: Edit }) {
+  const list = p.data.stats;
+  return (
+    <>
+      <p className="muted small">Three or four short numbers work best, e.g. <b>4+</b> years experience, <b>12</b> shipped projects.</p>
+      {list.map((x, i) => (
+        <EntryCard key={x.id} defaultOpen={!x.value && !x.label} title={[x.value, x.label].filter(Boolean).join(' ') || 'New number'} index={i} count={list.length}
+          onMove={(to) => edit((d) => { d.stats = move(d.stats, i, to); })} onRemove={() => edit((d) => { d.stats.splice(i, 1); })}>
+          <div className="grid2">
+            <Field label="Value" value={x.value} onChange={(v) => edit((d) => { d.stats[i].value = v; })} placeholder="4+" />
+            <Field label="Label" value={x.label} onChange={(v) => edit((d) => { d.stats[i].label = v; })} placeholder="Years experience" />
+          </div>
+        </EntryCard>
+      ))}
+      {list.length < 6 && <button type="button" className="add-link" onClick={() => edit((d) => { d.stats.push({ id: uid(), value: '', label: '' }); })}><Icon name="plus" size={15} />Add number</button>}
+    </>
+  );
+}
+
+function ServicesForm({ p, edit }: { p: Portfolio; edit: Edit }) {
+  const list = p.data.services;
+  return (
+    <>
+      {list.map((x, i) => (
+        <EntryCard key={x.id} defaultOpen={!x.title} title={x.title || 'New service'} index={i} count={list.length}
+          onMove={(to) => edit((d) => { d.services = move(d.services, i, to); })} onRemove={() => edit((d) => { d.services.splice(i, 1); })}>
+          <div className="grid2">
+            <Field label="Title" value={x.title} onChange={(v) => edit((d) => { d.services[i].title = v; })} placeholder="Backend APIs" />
+            <div className="field">
+              <label htmlFor={`svc-ico-${x.id}`}>Icon</label>
+              <select id={`svc-ico-${x.id}`} value={x.icon} onChange={(e) => edit((d) => { d.services[i].icon = e.target.value as ServiceIcon; })}>
+                {SERVICE_ICONS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <AutoTextarea label="Description" value={x.description} onChange={(v) => edit((d) => { d.services[i].description = v; })} rows={2} />
+        </EntryCard>
+      ))}
+      <button type="button" className="add-link" onClick={() => edit((d) => { d.services.push({ id: uid(), title: '', description: '', icon: 'code' }); })}><Icon name="plus" size={15} />Add service</button>
+    </>
+  );
+}
+
+function ExpertiseForm({ p, edit }: { p: Portfolio; edit: Edit }) {
+  const list = p.data.expertise;
+  return (
+    <>
+      <p className="muted small">Shown as bars. Be honest: recruiters ask about anything above 80%.</p>
+      {list.map((x, i) => (
+        <div className="lvl-row" key={x.id}>
+          <input aria-label="Skill" value={x.name} placeholder="Skill" onChange={(e) => edit((d) => { d.expertise[i].name = e.target.value; })} />
+          <input aria-label={`${x.name || 'Skill'} level`} type="range" min={0} max={100} step={5} value={x.level} onChange={(e) => edit((d) => { d.expertise[i].level = Number(e.target.value); })} />
+          <span className="lvl-val">{x.level}%</span>
+          <button type="button" className="icon-btn xs danger" aria-label={`Remove ${x.name || 'skill'}`} onClick={() => edit((d) => { d.expertise.splice(i, 1); })}><Icon name="trash" size={14} /></button>
+        </div>
+      ))}
+      <div className="btn-row">
+        <button type="button" className="add-link" onClick={() => edit((d) => { d.expertise.push({ id: uid(), name: '', level: 70 }); })}><Icon name="plus" size={15} />Add skill level</button>
+        {list.length === 0 && p.data.skills.length > 0 && (
+          <button type="button" className="add-link" onClick={() => edit((d) => { d.expertise = d.skills.slice(0, 6).map((n) => ({ id: uid(), name: n, level: 70 })); })}><Icon name="copy" size={15} />Start from my skills</button>
+        )}
+      </div>
+    </>
+  );
+}
+
+function AwardsForm({ p, edit }: { p: Portfolio; edit: Edit }) {
+  const list = p.data.awards;
+  return (
+    <>
+      {list.map((x, i) => (
+        <EntryCard key={x.id} defaultOpen={!x.title} title={x.title || 'New award'} subtitle={[x.issuer, x.date].filter(Boolean).join(' · ')} index={i} count={list.length}
+          onMove={(to) => edit((d) => { d.awards = move(d.awards, i, to); })} onRemove={() => edit((d) => { d.awards.splice(i, 1); })}>
+          <Field label="Title" value={x.title} onChange={(v) => edit((d) => { d.awards[i].title = v; })} placeholder="Hackathon winner" />
+          <div className="grid2">
+            <Field label="Given by" value={x.issuer} onChange={(v) => edit((d) => { d.awards[i].issuer = v; })} />
+            <Field label="Date" value={x.date} onChange={(v) => edit((d) => { d.awards[i].date = v; })} placeholder="Mar 2025" />
+          </div>
+          <AutoTextarea label="Detail" value={x.detail} onChange={(v) => edit((d) => { d.awards[i].detail = v; })} />
+        </EntryCard>
+      ))}
+      <button type="button" className="add-link" onClick={() => edit((d) => { d.awards.push({ id: uid(), title: '', issuer: '', date: '', detail: '' }); })}><Icon name="plus" size={15} />Add award</button>
+    </>
+  );
+}
+
+function ArticlesForm({ p, edit }: { p: Portfolio; edit: Edit }) {
+  const list = p.data.articles;
+  return (
+    <>
+      <p className="muted small">Blog posts, articles, talks, podcasts or open-source write-ups.</p>
+      {list.map((x, i) => (
+        <EntryCard key={x.id} defaultOpen={!x.title && !x.url} title={x.title || 'New link'} subtitle={[x.outlet, x.date].filter(Boolean).join(' · ')} index={i} count={list.length}
+          onMove={(to) => edit((d) => { d.articles = move(d.articles, i, to); })} onRemove={() => edit((d) => { d.articles.splice(i, 1); })}>
+          <Field label="Title" value={x.title} onChange={(v) => edit((d) => { d.articles[i].title = v; })} />
+          <Field label="Link" value={x.url} onChange={(v) => edit((d) => { d.articles[i].url = v; })} placeholder="https://…" type="url" />
+          <div className="grid2">
+            <Field label="Where" value={x.outlet} onChange={(v) => edit((d) => { d.articles[i].outlet = v; })} placeholder="Medium, Dev.to, PyCon India…" />
+            <Field label="Date" value={x.date} onChange={(v) => edit((d) => { d.articles[i].date = v; })} placeholder="Aug 2026" />
+          </div>
+          <AutoTextarea label="One-line summary" value={x.summary} onChange={(v) => edit((d) => { d.articles[i].summary = v; })} />
+        </EntryCard>
+      ))}
+      <button type="button" className="add-link" onClick={() => edit((d) => { d.articles.push({ id: uid(), title: '', url: '', outlet: '', date: '', summary: '' }); })}><Icon name="plus" size={15} />Add article or talk</button>
+    </>
+  );
+}
+
+function LanguagesForm({ p, edit }: { p: Portfolio; edit: Edit }) {
+  const list = p.data.languages;
+  return (
+    <>
+      {list.map((x, i) => (
+        <div className="lvl-row" key={x.id}>
+          <input aria-label="Language" value={x.name} placeholder="Tamil" onChange={(e) => edit((d) => { d.languages[i].name = e.target.value; })} />
+          <select aria-label={`${x.name || 'Language'} level`} value={x.level} onChange={(e) => edit((d) => { d.languages[i].level = e.target.value; })}>
+            <option value="">Level…</option>
+            {LANGUAGE_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+          </select>
+          <button type="button" className="icon-btn xs danger" aria-label={`Remove ${x.name || 'language'}`} onClick={() => edit((d) => { d.languages.splice(i, 1); })}><Icon name="trash" size={14} /></button>
+        </div>
+      ))}
+      <button type="button" className="add-link" onClick={() => edit((d) => { d.languages.push({ id: uid(), name: '', level: '' }); })}><Icon name="plus" size={15} />Add language</button>
     </>
   );
 }

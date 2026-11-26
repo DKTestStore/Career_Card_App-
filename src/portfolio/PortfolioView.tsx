@@ -144,6 +144,71 @@ export function PortfolioView({ p, url, onDownloadResume, preview }: Props) {
         </div>
       </section>
     ) : null,
+    stats: d.stats.length ? (
+      <section className="pf-sec pf-stats-sec" key="stats" aria-label="At a glance">
+        <ul className="pf-stats">{d.stats.map((x) => <li key={x.id}><b>{x.value}</b><span>{x.label}</span></li>)}</ul>
+      </section>
+    ) : null,
+    services: d.services.length ? (
+      <section className="pf-sec" id="services" key="services" aria-labelledby="pf-h-svc">
+        <h2 id="pf-h-svc">What I do</h2>
+        <div className="pf-services">
+          {d.services.map((x) => (
+            <article className="pf-svc" key={x.id}>
+              <span className="pf-svc-ico"><Icon name={x.icon || 'code'} size={20} /></span>
+              <h3>{x.title}</h3>
+              {has(x.description) && <p>{x.description}</p>}
+            </article>
+          ))}
+        </div>
+      </section>
+    ) : null,
+    expertise: d.expertise.length ? (
+      <section className="pf-sec" key="expertise" aria-labelledby="pf-h-exl">
+        <h2 id="pf-h-exl">Expertise</h2>
+        <ul className="pf-levels">
+          {d.expertise.map((x) => (
+            <li key={x.id}>
+              <div className="pf-level-top"><span>{x.name}</span><small>{x.level}%</small></div>
+              <div className="pf-level-bar" role="meter" aria-valuenow={x.level} aria-valuemin={0} aria-valuemax={100} aria-label={x.name}><i style={{ width: `${x.level}%` }} /></div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ) : null,
+    awards: d.awards.length ? (
+      <section className="pf-sec" key="awards" aria-labelledby="pf-h-awd">
+        <h2 id="pf-h-awd">Awards & achievements</h2>
+        <ul className="pf-certs pf-awards">
+          {d.awards.map((x) => (
+            <li key={x.id}>
+              <Icon name="star" size={18} />
+              <div><b>{x.title}</b><small>{[x.issuer, x.date].filter(Boolean).join(' · ')}</small>{has(x.detail) && <p>{x.detail}</p>}</div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ) : null,
+    articles: d.articles.length ? (
+      <section className="pf-sec" id="writing" key="articles" aria-labelledby="pf-h-art">
+        <h2 id="pf-h-art">Writing & talks</h2>
+        <ul className="pf-articles">
+          {d.articles.map((x) => (
+            <li key={x.id}>
+              <div className="pf-art-meta">{[x.outlet, x.date].filter(Boolean).join(' · ')}</div>
+              <h3>{has(x.url) ? <a href={href(x.url)} {...linkProps}>{x.title || short(x.url)}<Icon name="external" size={14} /></a> : x.title}</h3>
+              {has(x.summary) && <p>{x.summary}</p>}
+            </li>
+          ))}
+        </ul>
+      </section>
+    ) : null,
+    languages: d.languages.length ? (
+      <section className="pf-sec" key="languages" aria-labelledby="pf-h-lng">
+        <h2 id="pf-h-lng">Languages</h2>
+        <ul className="pf-langs">{d.languages.map((x) => <li key={x.id}><b>{x.name}</b>{has(x.level) && <span>{x.level}</span>}</li>)}</ul>
+      </section>
+    ) : null,
     contact: (
       <section className="pf-sec pf-contact" id="contact" key="contact" aria-labelledby="pf-h-contact">
         <h2 id="pf-h-contact">Contact</h2>
@@ -181,7 +246,9 @@ export function PortfolioView({ p, url, onDownloadResume, preview }: Props) {
         <a className="pf-brand" href="#top" {...(preview ? linkProps : {})}><Avatar name={a.name} photo={a.photo} size={32} /><b>{a.name || 'Your name'}</b></a>
         <nav className="pf-nav-links" aria-label="Portfolio sections">
           {visible('projects') && d.projects.length > 0 && <a href="#work" {...(preview ? linkProps : {})}>Work</a>}
+          {visible('services') && d.services.length > 0 && <a href="#services" {...(preview ? linkProps : {})}>Services</a>}
           {visible('experience') && d.experience.length > 0 && <a href="#experience" {...(preview ? linkProps : {})}>Experience</a>}
+          {visible('articles') && d.articles.length > 0 && <a href="#writing" {...(preview ? linkProps : {})}>Writing</a>}
           {visible('contact') && <a href="#contact" {...(preview ? linkProps : {})}>Contact</a>}
         </nav>
         <div className="pf-nav-cta">
@@ -193,6 +260,12 @@ export function PortfolioView({ p, url, onDownloadResume, preview }: Props) {
         {visible('about') && (
           <section className="pf-hero" aria-label="About">
             <div className="pf-hero-text">
+              {a.availability && (
+                <p className={`pf-avail pf-avail-${a.availability}`} data-testid="pf-availability">
+                  <i aria-hidden="true" />{a.availability === 'open' ? 'Open to work' : a.availability === 'freelance' ? 'Available for freelance' : 'Not available right now'}
+                  {has(a.availabilityNote) && <span> · {a.availabilityNote}</span>}
+                </p>
+              )}
               {has(a.openTo) && <p className="pf-eyebrow">{a.openTo}</p>}
               <h1>{a.name || 'Your name'}</h1>
               {has(a.headline) && <p className="pf-headline">{a.headline}</p>}

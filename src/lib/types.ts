@@ -139,4 +139,28 @@ export interface Backup {
   atsReports?: AtsReport[];
   /** Added in 0.4.0 — includes the portfolio edit key, keep backups private. */
   portfolios?: import('./portfolio/types').Portfolio[];
+  /** Added in 0.6.0 — personal planner events and tasks. */
+  events?: PlannerEvent[];
+}
+
+/** 0.6.0 personal planner (Calendar page). Dates are local YYYY-MM-DD, times HH:MM. */
+export const EVENT_CATEGORIES = ['interview', 'deadline', 'follow-up', 'study', 'personal', 'other'] as const;
+export type EventCategory = (typeof EVENT_CATEGORIES)[number];
+export interface PlannerEvent {
+  id: string;
+  title: string;
+  kind: 'event' | 'task';
+  date: string;
+  allDay: boolean;
+  time: string;
+  endTime: string;
+  category: EventCategory;
+  /** Optional custom colour (hex); falls back to the category colour. */
+  color: string;
+  notes: string;
+  done: boolean;
+  /** Optional link to a tracker application. */
+  applicationId?: string;
+  createdAt: string;
+  updatedAt: string;
 }

@@ -20,7 +20,7 @@ No real account yet. A guest session lives in this browser. All resumes, applica
 - Dashboard + Resumes page: create (blank or Software Engineer / Fresher-Student / Product Designer samples), open, duplicate, rename, delete (with confirmation), search.
 - Editor sections: Contact (incl. LinkedIn/GitHub/portfolio profiles), Summary, Experience, Education, Projects, Skills, Certifications, Achievements. Add / remove / reorder entries; bullet lists with reorder (Enter adds a bullet, Backspace on an empty bullet removes it).
 - Live preview at real A4 size (scaled), page-break guides when content runs past one page.
-- **36 templates**, each tagged **ATS-friendly** (19) or **Design-focused** (17), chosen from a gallery with thumbnails, search, tag filter and category filter (Single column, Two column, Minimal, Classic, Creative, Executive, Tech, Academic, Student). Every template renders all sections and prints to a clean A4 page.
+- **58 templates**, each tagged **ATS-friendly** (30) or **Design-focused** (28), chosen from a gallery with thumbnails, search, tag filter and category filter (Single column, Two column, Simple, Professional, Functional, Minimal, Classic, Creative, Executive, Tech, Academic, Student). 0.6.0 added 22 originals inspired by the *kinds* of layouts common on template sites (simple, professional, functional / skills-based, hybrid, industry-specific) — e.g. Boardroom, Ledger, Index, Skills-based, Hybrid, Care (licensed roles), Educator, Closer (sales), Pivot (career change), Mosaic, Noir, Horizon, Blueprint, Prism, Zen, Columnist. Every template renders all sections and prints to a clean A4 page.
   - ATS-friendly: Modern, Minimal ATS, Classic Serif, Harvard, Compact, Clean Pro, Ribbon, Startup, Monochrome, Executive Classic, Developer, Academic CV, Fresher, Campus Placement, Consultant, Analyst, Engineer, Graduate, Banker.
   - Design-focused: Executive, Elegant, Sidebar Right, Corporate, Infographic (skill bars), Creative Banner, Metro, Timeline, Bold, Nordic, Portfolio, Tech Stack, Scholar, Slate, Aurora, Studio, Pulse.
 - **16 colour presets** (Violet, Indigo, Navy, Sky, Teal, Emerald, Forest, Slate, Charcoal, Black, Purple, Rose, Burgundy, Coral, Amber, Gold) plus a **custom colour picker**. Light colours are automatically darkened until text meets WCAG AA contrast (4.5:1) on white; the editor shows the adjusted value.
@@ -36,10 +36,10 @@ No real account yet. A guest session lives in this browser. All resumes, applica
 - ATS score panel in the editor (general score, breakdown, top suggestions with **Fix** links that open the right section).
 
 ### My Portfolio (`/portfolio`, public pages at `/p/:slug`)
-- **Builder** with Sections / Live preview / Design & publish (tabs on mobile). Sections: About/hero (photo, headline, “open to”, bio, location, website), **Projects**, Skills, Experience, Education, Certifications, Gallery, Testimonials, Contact & social links. Each section can be hidden or reordered.
+- **Builder** with Sections / Live preview / Design & publish (tabs on mobile). Sections: About/hero (photo, headline, “open to”, **availability badge** — open to work / freelance / not available + note, bio, location, website), **At a glance** numbers, **Services / What I do** (icon cards), **Projects**, Skills, **Skill levels** (bars), Experience, Education, Certifications, **Awards & achievements**, **Writing & talks** (articles, talks, podcasts), **Languages**, Gallery, Testimonials, Contact & social links. Each section can be hidden or reordered.
 - **Import from résumé** fills About, Projects, Skills, Experience, Education, Certifications and Contact from any saved résumé (images, gallery and testimonials are kept).
 - **Project editor**: title, role, tech tags, description, cover image, screenshot gallery (up to 6), GitHub and live-demo links, *Featured* toggle (featured projects show first).
-- **8 themes** — Minimal, Developer (dark), Creative, Academic, Editorial (warm serif magazine), Midnight (dark navy with glow), Brutalist (bold borders and hard shadows), Pastel (soft gradients and rounded cards) — plus 6 accent colours and a custom colour. Theme gallery at `/portfolio/themes`; full-page local preview at `/portfolio/preview`.
+- **13 themes** — Minimal, Developer (dark), Creative, Academic, Editorial (warm serif magazine), Midnight (dark navy with glow), Brutalist (bold borders and hard shadows), Pastel (soft gradients and rounded cards), and new in 0.6.0 Terminal (black/phosphor monospace), Corporate (navy header, grey canvas), Sunset (warm gradient hero), Glass (frosted cards on a colourful gradient), Forest (earthy greens, serif) — plus 6 accent colours and a custom colour. Theme gallery at `/portfolio/themes`; full-page local preview at `/portfolio/preview`.
 - **Images are compressed on the device**: longest side resized to 1600 px and saved as WebP (JPEG fallback) before they are stored.
 - **Publish & share** (`/portfolio/publish`): custom link (`/p/your-name`, availability check), **Public / Private / Password**, **Hide phone number** (applied on the server), choose the résumé behind *Download résumé*, copy link, **QR code** (SVG on screen, PNG download), size meter (2 MB limit), unpublish.
 - **Public page** `/p/:slug`: hero with photo and CTAs (*Download résumé* opens a print-ready PDF of the chosen résumé; *Contact*), featured project cards, skills, experience timeline, education, certifications, gallery, testimonials, contact form (opens the visitor’s email app; nothing is stored), links and QR code. Server-rendered `<title>`, description, canonical and Open Graph tags for public portfolios; password and private pages are `noindex`.
@@ -62,6 +62,14 @@ Everything runs in the browser: no external APIs, nothing uploaded.
 - List view (table on desktop, stacked cards on mobile) with sort, search and status filter.
 - Stats: total, count per status (click to filter), response rate = (Interview + Offer + Rejected) ÷ everything past Wishlist.
 - Follow-ups: overdue cards get a coral edge + badge, "due today" in amber; dashboard lists upcoming follow-ups.
+
+### Calendar / planner (`/calendar`)
+- **Month, Week and Agenda** views (Monday-first), Today button and previous / next. On phones the month grid shows coloured dots and the selected day's list below; Week becomes a stacked day list.
+- **Events and tasks** with title, date, all-day or start / end time, category (**Interview, Application deadline, Follow-up, Study / prep, Personal, Other**), colour (category colour or a custom swatch), notes and a **done** checkbox. Create (button, double-click a day, or + on a day), edit and delete.
+- Side panels: selected day, **overdue tasks**, **Today** and **Next 7 days**, with tick-off checkboxes.
+- **Applications on the calendar** (toggle): *Applied* dates and *Follow-up* dates from the tracker (shown as *Interview* when the application is in the Interview column). Read-only; they link to the tracker.
+- Category filter, nav badge with today's open items, **Export .ics** (planner items; import into Google Calendar, Outlook or Apple Calendar).
+- Stored in IndexedDB (`events` store) and included in backups.
 
 ### Data and privacy
 - Full backup export/import (JSON) with *Merge* or *Replace all*; "Delete all data" in Data & settings, and the sign-out erase option.
@@ -136,7 +144,8 @@ npx vercel --prod   # production deploy
 | `versions` | `{ id, resumeId, number, label, createdAt, snapshot: { name, template, accent, customColor, font, content } }` — max 50 per resume |
 | `applications` | `{ id, company, role, location, link, dateApplied, salary, resumeId, versionId, status, notes, followUp, contact, atsReportId?, order, … }` |
 | `atsReports` | `{ id, resumeId, resumeName, jdTitle, jdText, score, breakdown[], matched[], missing[], createdAt }` |
-| `portfolios` | `{ id: 'main', slug, theme, accent, resumeId, data: { about, projects[], skills[], experience[], education[], certifications[], gallery[], testimonials[], contact, sections[] }, publish: { visibility, hidePhone, showResume, token, publishedSlug, … } }` — images are data URLs (compressed WebP/JPEG). DB version 3. |
+| `portfolios` | `{ id: 'main', slug, theme, accent, resumeId, data: { about, projects[], skills[], experience[], education[], certifications[], gallery[], testimonials[], stats[], services[], expertise[], awards[], articles[], languages[], contact, sections[] }, publish: { visibility, hidePhone, showResume, token, publishedSlug, … } }` — images are data URLs (compressed WebP/JPEG). DB version 3. |
+| `events` | `{ id, title, kind: event\|task, date (YYYY-MM-DD), allDay, time, endTime, category, color, notes, done, createdAt, updatedAt }` — DB version 4 (0.6.0). |
 | `hire-ready:session` / `hire-ready:profile` | Guest session flag and display name in `localStorage` (see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)) |
 
 Stage 2 (Google SSO + sync via Supabase) can upload this same data on first sign-in. Details and the planned hook points are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Changes are listed in [docs/CHANGELOG.md](docs/CHANGELOG.md).

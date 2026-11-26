@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0 — 2026-11-26
+
+> Built without running the Playwright / e2e suites, at the owner's request ("don't test anything"). Only `npm run lint` and `npm run build` (type-check + build) were run.
+
+- **22 new résumé templates** (58 total: 30 ATS-friendly, 28 design-focused). Original designs, informed by a review of the kinds of layouts common on template sites (simple, professional, functional, hybrid, industry-specific); no designs, text or branding copied.
+  - ATS: Boardroom, Ledger, Simple Line, Index, Skills-based, Hybrid, Care, Educator, Closer, Civic, Pivot.
+  - Design: Mosaic, Noir, Horizon, Atelier, Blueprint, Canvas, Prism, Harbor, Vivid, Zen, Columnist.
+  - New header styles *frame, right, ruled, tinted*; heading styles *number, tab, dotted, overline, square*; categories *Simple, Professional, Functional*; functional / hybrid / licensed / results-first section orders. All supported in PDF and Word export.
+- **5 new portfolio themes** (13 total): Terminal, Corporate, Sunset, Glass, Forest (also accepted by the publish API).
+- **New portfolio sections**: availability badge (open to work / freelance / not available + note), At a glance (numbers), Services / What I do, Skill levels, Awards & achievements (imported from résumé awards), Writing & talks, Languages. Editable in the builder, hideable / reorderable, rendered on public pages. Older local and published portfolios are normalised on load.
+- **Calendar / planner** (`/calendar`, new nav item): month / week / agenda views, events and tasks with category, colour, time, notes and done; today / next 7 days / overdue panels; tracker applied and follow-up dates shown read-only; .ics export; stored in IndexedDB `events` (DB v4) and included in backups.
+- Bottom nav now has 7 items; service worker cache v6.
+
 ## 0.5.0 — 2026-11-26
 
 - **Upload a résumé** (PDF, Word .docx or .txt, up to 8 MB) from the Resumes page or the ATS page. The file is parsed on the device (pdf.js / fflate + DOMParser, both lazy-loaded) into contact details, summary, experience, education, projects, skills, certifications and achievements; a **review dialog** shows what was found and lets you fix it before saving as a new résumé (or *Save & check ATS*).

@@ -11,7 +11,7 @@ export interface DocEntry { title: string; sub?: string; dates?: string; para?: 
 export interface DocSection { key: SectionKey; title: string; text?: string; entries?: DocEntry[]; pairs?: { label: string; text: string }[] }
 export interface DocStyle {
   accent: string; soft: string; sidebar: string; font: 'sans' | 'serif' | 'mono'; headFont: 'sans' | 'serif' | 'mono';
-  align: 'left' | 'center'; head: GenericConfig['head']; band: boolean; stripe: boolean; split: boolean; compact: boolean; airy: boolean; mono: boolean;
+  align: 'left' | 'center' | 'right'; head: GenericConfig['head']; header: GenericConfig['header']; band: boolean; stripe: boolean; split: boolean; compact: boolean; airy: boolean; mono: boolean;
   side?: { at: 'left' | 'right'; dark: boolean };
 }
 export interface DocModel { fileBase: string; name: string; label: string; contacts: string[]; sections: DocSection[]; style: DocStyle; templateName: string }
@@ -66,7 +66,7 @@ export function buildModel(r: Pick<Resume, 'name' | 'template' | 'accent' | 'cus
     style: {
       accent: cfg.mono ? '#1F1F1F' : a.theme, soft: cfg.mono ? '#ECECEC' : a.soft, sidebar: cfg.mono ? '#1F1F1F' : a.sidebar,
       font: userFont ?? (font === 'mono' ? 'sans' : font), headFont: userFont ?? font,
-      align: cfg.header === 'center' ? 'center' : 'left', head: cfg.head, band: cfg.header === 'band', stripe: cfg.header === 'stripe', split: cfg.header === 'split',
+      align: cfg.header === 'center' || cfg.header === 'frame' ? 'center' : cfg.header === 'right' ? 'right' : 'left', head: cfg.head, header: cfg.header, band: cfg.header === 'band', stripe: cfg.header === 'stripe', split: cfg.header === 'split',
       compact: cfg.density === 'compact', airy: cfg.density === 'airy', mono: !!cfg.mono,
       side: cfg.layout === 'sidebar' ? { at: cfg.side ?? 'left', dark: cfg.sideStyle === 'dark' } : undefined,
     },

@@ -34,17 +34,23 @@ const p = (runs: Run[], opts: { style?: string; align?: 'center' | 'right'; afte
 
 export function buildDocumentXml(m: DocModel): string {
   const s = m.style, accent = hex(s.accent), soft = hex(s.soft);
-  const center = s.align === 'center' ? 'center' as const : undefined;
+  const center = s.align === 'center' ? 'center' as const : s.align === 'right' ? 'right' as const : undefined;
   const body: string[] = [];
   // Header block (Word keeps it in the body, not the page header, so ATS parsers see it).
-  body.push(p([{ t: m.name }], { style: 'Title', align: center, border: s.band || s.stripe ? `<w:pBdr><w:top w:val="single" w:sz="${s.band ? 48 : 24}" w:space="6" w:color="${accent}"/></w:pBdr>` : undefined }));
+  body.push(p([{ t: m.name }], { style: 'Title', align: center, border: s.band || s.stripe || s.header === 'ruled' ? `<w:pBdr><w:top w:val="single" w:sz="${s.band ? 48 : 24}" w:space="6" w:color="${accent}"/></w:pBdr>`
+    : s.header === 'frame' ? `<w:pBdr>${['top', 'left', 'right'].map((x) => `<w:${x} w:val="single" w:sz="12" w:space="4" w:color="${accent}"/>`).join('')}</w:pBdr>` : undefined,
+    shade: s.header === 'tinted' ? soft : undefined }));
   if (m.label) body.push(p([{ t: m.label }], { style: 'Subtitle', align: center }));
   if (m.contacts.length) body.push(p([{ t: m.contacts.join('  |  ') }], { style: 'Contact', align: center }));
-  const headBorder = s.head === 'rule' || s.head === 'leader' || s.head === 'double' || s.head === 'underline'
-    ? `<w:pBdr>${s.head === 'double' ? `<w:top w:val="single" w:sz="6" w:space="1" w:color="${accent}"/>` : ''}<w:bottom w:val="single" w:sz="${s.head === 'underline' ? 12 : 6}" w:space="1" w:color="${accent}"/></w:pBdr>` : s.head === 'bar' ? `<w:pBdr><w:left w:val="single" w:sz="24" w:space="6" w:color="${accent}"/></w:pBdr>` : '';
+  const headBorder = s.head === 'rule' || s.head === 'leader' || s.head === 'double' || s.head === 'underline' || s.head === 'tab'
+    ? `<w:pBdr>${s.head === 'double' ? `<w:top w:val="single" w:sz="6" w:space="1" w:color="${accent}"/>` : ''}<w:bottom w:val="single" w:sz="${s.head === 'underline' || s.head === 'tab' ? 12 : 6}" w:space="1" w:color="${accent}"/></w:pBdr>`
+    : s.head === 'dotted' ? `<w:pBdr><w:bottom w:val="dotted" w:sz="8" w:space="1" w:color="${accent}"/></w:pBdr>`
+    : s.head === 'overline' ? `<w:pBdr><w:top w:val="single" w:sz="18" w:space="3" w:color="${accent}"/></w:pBdr>`
+    : s.head === 'bar' || s.head === 'square' ? `<w:pBdr><w:left w:val="single" w:sz="${s.head === 'square' ? 36 : 24}" w:space="6" w:color="${accent}"/></w:pBdr>` : '';
   const headShade = s.head === 'box' ? accent : s.head === 'pill' || s.head === 'slab' ? soft : undefined;
+  let secNo = 0;
   const sec = (x: DocSection) => {
-    body.push(p([{ t: s.head === 'mono' ? `// ${x.title}` : x.title, color: s.head === 'box' ? 'FFFFFF' : undefined }], { style: 'Heading1', border: headBorder, shade: headShade, align: s.head === 'double' ? 'center' : undefined }));
+    body.push(p([{ t: s.head === 'mono' ? `// ${x.title}` : s.head === 'number' ? `${String(++secNo).padStart(2, '0')}  ${x.title}` : x.title, color: s.head === 'box' ? 'FFFFFF' : undefined }], { style: 'Heading1', border: headBorder, shade: headShade, align: s.head === 'double' ? 'center' : undefined }));
     if (x.text) body.push(p([{ t: x.text }], { after: 80 }));
     for (const e of x.entries ?? []) {
       body.push(p([{ t: e.title, b: true }, ...(e.dates ? [{ t: `\t${e.dates}`, color: '6E6A7C', size: 19, b: false }] : [])], { style: 'Heading2', tab: true, keepNext: true }));
